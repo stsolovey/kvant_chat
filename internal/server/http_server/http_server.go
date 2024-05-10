@@ -33,6 +33,8 @@ func configureRoutes(
 
 	r.Route("/api/v1/user", func(r chi.Router) {
 		r.Post("/", usersHandler.CreateUser)
+		r.Post("/register", usersHandler.RegisterUser)
+
 		r.Get("/", usersHandler.GetUsers)
 
 		r.Route("/{id}", func(r chi.Router) {
