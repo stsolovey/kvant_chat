@@ -1,15 +1,12 @@
 package service
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/stsolovey/kvant_chat/internal/models"
 )
-
-var errAssertingClaimsJWT = errors.New("error asserting claims to jwt.MapClaims")
 
 type AuthServiceInterface interface {
 	GenerateToken(username string) (string, error)

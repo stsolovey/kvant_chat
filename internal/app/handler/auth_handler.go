@@ -22,23 +22,27 @@ func NewAuthHandler(s service.AuthServiceInterface, logger *logrus.Logger) *Auth
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
+
 		return
 	}
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Error parsing form", http.StatusBadRequest)
+
 		return
 	}
 
 	username := r.FormValue("username")
 	if username == "" {
 		http.Error(w, "Username is required", http.StatusBadRequest)
+
 		return
 	}
 
 	tokenString, err := h.service.GenerateToken(username)
 	if err != nil {
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+
 		return
 	}
 
@@ -49,5 +53,9 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	})
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Logged in successfully with token: " + tokenString))
+
+	_, err = w.Write([]byte("Logged in successfully with token: " + tokenString))
+	if err != nil {
+		h.logger.Error("Failed to write response: ", err)
+	}
 }

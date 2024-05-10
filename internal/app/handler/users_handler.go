@@ -32,11 +32,13 @@ func NewUsersHandler(s service.UsersServiceInterface, logger *logrus.Logger) *Us
 func (h *UsersHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
+
 		return
 	}
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Error parsing form", http.StatusBadRequest)
+
 		return
 	}
 
@@ -45,11 +47,13 @@ func (h *UsersHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	if len(username) < 6 {
 		http.Error(w, "Username must be at least 6 characters long", http.StatusBadRequest)
+
 		return
 	}
 
 	if len(password) < 6 {
 		http.Error(w, "Password must be at least 6 characters long", http.StatusBadRequest)
+
 		return
 	}
 
@@ -78,7 +82,10 @@ func (h *UsersHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(response)
+	_, err = w.Write(response)
+	if err != nil {
+		h.logger.Error("Failed to write response: ", err)
+	}
 }
 
 func (h *UsersHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
