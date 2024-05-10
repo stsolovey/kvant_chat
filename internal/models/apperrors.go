@@ -17,4 +17,6 @@ var (
 	ErrInvalidSortingColumn = errors.New("invalid sorting column")
 
 	ErrUserWasNotDeleted = errors.New("user was not deleted")
+
+	ErrInvalidTokenClaims = errors.New("invalid token claims: unable to assert to jwt.MapClaims")
 )
