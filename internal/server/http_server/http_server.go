@@ -20,8 +20,16 @@ type Server struct {
 	server *http.Server
 }
 
-func configureRoutes(r chi.Router, log *logrus.Logger, usersServ service.UsersServiceInterface) {
+func configureRoutes(
+	r chi.Router,
+	log *logrus.Logger,
+	usersServ service.UsersServiceInterface,
+	authServ service.AuthServiceInterface,
+) {
+	authHandler := handler.NewAuthHandler(authServ, log)
 	usersHandler := handler.NewUsersHandler(usersServ, log)
+
+	r.Post("/login", authHandler.Login)
 
 	r.Route("/api/v1/user", func(r chi.Router) {
 		r.Post("/", usersHandler.CreateUser)
@@ -40,9 +48,10 @@ func CreateServer(
 	log *logrus.Logger,
 	port string,
 	usersServ service.UsersServiceInterface,
+	authServ service.AuthServiceInterface,
 ) *Server {
 	r := chi.NewRouter()
-	configureRoutes(r, log, usersServ)
+	configureRoutes(r, log, usersServ, authServ)
 
 	s := &http.Server{
 		Addr:              ":" + port,
