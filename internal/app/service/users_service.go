@@ -33,6 +33,11 @@ func (s *UsersService) RegisterUser(ctx context.Context, input models.UserRegist
 		return nil, models.ErrPasswordTooShort
 	}
 
+	_, err := s.repo.GetUserByUsername(ctx, input.UserName)
+	if err == nil {
+		return nil, models.ErrUsernameExists
+	}
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.HashPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash password: %w", err)
@@ -82,29 +87,10 @@ func (s *UsersService) GetUsers(ctx context.Context, req models.FeedUsersRequest
 func (s *UsersService) UpdateUser(ctx context.Context, id int,
 	input models.UserUpdateInput,
 ) (*models.User, error) {
-	if input.UserName == "" {
-		return nil, models.ErrUserNameRequired
-	} else if len(input.UserName) < 3 {
-		return nil, models.ErrUserNameTooShort
-	}
 
-	userToUpdate, err := s.GetUser(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("id not found: %w", err)
-	}
+	userToUpdate, _ := s.GetUser(ctx, id)
 
-	if input.UserName != "" {
-		userToUpdate.UserName = input.UserName
-	}
-
-	if input.HashPassword != "" {
-		userToUpdate.HashPassword = input.HashPassword
-	}
-
-	updatedUser, err := s.repo.Update(ctx, id, *userToUpdate)
-	if err != nil {
-		return nil, fmt.Errorf("error updating user: %w", err)
-	}
+	updatedUser, _ := s.repo.Update(ctx, id, *userToUpdate)
 
 	return updatedUser, nil
 }
