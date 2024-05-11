@@ -36,6 +36,14 @@ func main() {
 		log.WithError(err).Panic("Failed to initialize storage")
 	}
 
+	if err := storageSystem.WaitForDatabase(ctx, log); err != nil {
+		log.WithError(err).Panic("Failed to wait for database to be ready")
+	}
+
+	if err := storageSystem.Migrate(log); err != nil {
+		log.WithError(err).Panic("Failed to execute migrations")
+	}
+
 	usersRepo := repository.NewUsersRepository(storageSystem.DB())
 
 	authService := service.NewAuthService(cfg.SigningKey)
