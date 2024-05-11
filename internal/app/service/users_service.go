@@ -6,6 +6,7 @@ import (
 
 	"github.com/stsolovey/kvant_chat/internal/app/repository"
 	"github.com/stsolovey/kvant_chat/internal/models"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UsersServiceInterface interface {
@@ -24,27 +25,28 @@ func NewUsersService(repo repository.UsersRepositoryInterface) UsersServiceInter
 	return &UsersService{repo: repo}
 }
 
-func (s *UsersService) CreateUser(
-	ctx context.Context,
-	input models.UserCreateInput,
-) (*models.User, error) {
-	if input.Name == "" {
-		return nil, models.ErrUserNameRequired
-	} else if len(input.Name) < 3 {
-		return nil, models.ErrUserNameTooShort
+func (s *UsersService) CreateUser(ctx context.Context, input models.UserCreateInput) (*models.User, error) {
+	if len(input.Name) < 6 {
+		return nil, models.ErrUsernameTooShort
+	}
+	if len(input.HashPassword) < 6 {
+		return nil, models.ErrPasswordTooShort
 	}
 
-	user := models.User{
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.HashPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash password: %w", err)
+	}
+	input.HashPassword = string(hashedPassword)
+
+	user, err := s.repo.Create(ctx, models.User{
 		Name:         input.Name,
 		HashPassword: input.HashPassword,
-	}
-
-	createdUser, err := s.repo.Create(ctx, user)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
-
-	return createdUser, nil
+	return user, nil
 }
 
 func (s *UsersService) GetUser(ctx context.Context, id int) (*models.User, error) {

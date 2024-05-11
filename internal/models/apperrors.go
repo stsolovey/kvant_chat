@@ -19,4 +19,7 @@ var (
 	ErrUserWasNotDeleted = errors.New("user was not deleted")
 
 	ErrInvalidTokenClaims = errors.New("invalid token claims: unable to assert to jwt.MapClaims")
+
+	ErrUsernameTooShort = errors.New("username must be at least 6 characters long")
+	ErrPasswordTooShort = errors.New("password must be at least 6 characters long")
 )
