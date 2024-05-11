@@ -29,17 +29,17 @@ func configureRoutes(
 	authHandler := handler.NewAuthHandler(authServ, log)
 	usersHandler := handler.NewUsersHandler(usersServ, log)
 
-	r.Post("/login", authHandler.Login)
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Route("/user", func(r chi.Router) {
+			r.Post("/login", authHandler.Login)
+			r.Post("/register", usersHandler.RegisterUser)
 
-	r.Route("/api/v1/user", func(r chi.Router) {
-		r.Post("/register", usersHandler.RegisterUser)
-
-		r.Get("/", usersHandler.GetUsers)
-
-		r.Route("/{id}", func(r chi.Router) {
-			r.Get("/", usersHandler.GetUser)
-			r.Patch("/", usersHandler.UpdateUser)
-			r.Delete("/", usersHandler.DeleteUser)
+			r.Get("/", usersHandler.GetUsers)
+			r.Route("/{id}", func(r chi.Router) {
+				r.Get("/", usersHandler.GetUser)
+				r.Patch("/", usersHandler.UpdateUser)
+				r.Delete("/", usersHandler.DeleteUser)
+			})
 		})
 	})
 }
