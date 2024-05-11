@@ -4,6 +4,7 @@ import (
 	// "encoding/json"
 	// "fmt"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/sirupsen/logrus"
@@ -48,7 +49,16 @@ func (h *UsersHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	createdUser, err := h.service.RegisterUser(r.Context(), userRegisterInput)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		var status int
+		switch {
+		case errors.Is(err, models.ErrUsernameExists):
+			status = http.StatusConflict
+		case errors.Is(err, models.ErrUsernameTooShort), errors.Is(err, models.ErrPasswordTooShort):
+			status = http.StatusBadRequest
+		default:
+			status = http.StatusInternalServerError
+		}
+		http.Error(w, err.Error(), status)
 
 		return
 	}
