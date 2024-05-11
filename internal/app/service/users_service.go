@@ -6,7 +6,7 @@ import (
 
 	"github.com/stsolovey/kvant_chat/internal/app/repository"
 	"github.com/stsolovey/kvant_chat/internal/models"
-	"golang.org/x/crypto/bcrypt"
+	"github.com/stsolovey/kvant_chat/internal/util"
 )
 
 type UsersServiceInterface interface {
@@ -38,7 +38,7 @@ func (s *UsersService) RegisterUser(ctx context.Context, input models.UserRegist
 		return nil, models.ErrUsernameExists
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.HashPassword), bcrypt.DefaultCost)
+	hashedPassword, err := util.HashPassword(input.HashPassword)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
