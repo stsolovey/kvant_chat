@@ -87,7 +87,6 @@ func (s *UsersService) GetUsers(ctx context.Context, req models.FeedUsersRequest
 func (s *UsersService) UpdateUser(ctx context.Context, id int,
 	input models.UserUpdateInput,
 ) (*models.User, error) {
-
 	userToUpdate, _ := s.GetUser(ctx, id)
 
 	updatedUser, _ := s.repo.Update(ctx, id, *userToUpdate)

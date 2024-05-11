@@ -12,6 +12,7 @@ import (
 	"github.com/stsolovey/kvant_chat/internal/app/handler"
 	"github.com/stsolovey/kvant_chat/internal/app/service"
 	"github.com/stsolovey/kvant_chat/internal/config"
+	"github.com/stsolovey/kvant_chat/internal/middleware"
 )
 
 type Server struct {
@@ -31,9 +32,8 @@ func configureRoutes(
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Route("/user", func(r chi.Router) {
-			r.Post("/login", authHandler.Login)
-			r.Post("/register", usersHandler.RegisterUser)
-
+			r.With(middleware.RateLimiterMiddleware).Post("/login", authHandler.Login)
+			r.With(middleware.RateLimiterMiddleware).Post("/register", usersHandler.RegisterUser)
 			r.Get("/", usersHandler.GetUsers)
 			r.Route("/{id}", func(r chi.Router) {
 				r.Get("/", usersHandler.GetUser)
