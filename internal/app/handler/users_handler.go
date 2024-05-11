@@ -9,7 +9,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stsolovey/kvant_chat/internal/app/service"
 	"github.com/stsolovey/kvant_chat/internal/models"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type Response struct {
@@ -42,35 +41,15 @@ func (h *UsersHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username := r.FormValue("username")
-	password := r.FormValue("password")
-
-	if len(username) < 6 {
-		http.Error(w, "Username must be at least 6 characters long", http.StatusBadRequest)
-
-		return
-	}
-
-	if len(password) < 6 {
-		http.Error(w, "Password must be at least 6 characters long", http.StatusBadRequest)
-
-		return
-	}
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		http.Error(w, "Failed to hash password", http.StatusInternalServerError)
-		return
-	}
-
 	userCreateInput := models.UserCreateInput{
-		Name:         username,
-		HashPassword: string(hashedPassword),
+		Name:         r.FormValue("username"),
+		HashPassword: r.FormValue("password"),
 	}
 
 	createdUser, err := h.service.CreateUser(r.Context(), userCreateInput)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+
 		return
 	}
 
