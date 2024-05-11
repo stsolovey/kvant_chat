@@ -32,7 +32,6 @@ func configureRoutes(
 	r.Post("/login", authHandler.Login)
 
 	r.Route("/api/v1/user", func(r chi.Router) {
-		r.Post("/", usersHandler.CreateUser)
 		r.Post("/register", usersHandler.RegisterUser)
 
 		r.Get("/", usersHandler.GetUsers)

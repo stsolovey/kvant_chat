@@ -41,12 +41,12 @@ func (h *UsersHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userCreateInput := models.UserCreateInput{
-		Name:         r.FormValue("username"),
+	userRegisterInput := models.UserRegisterInput{
+		UserName:     r.FormValue("username"),
 		HashPassword: r.FormValue("password"),
 	}
 
-	createdUser, err := h.service.CreateUser(r.Context(), userCreateInput)
+	createdUser, err := h.service.RegisterUser(r.Context(), userRegisterInput)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 
@@ -65,9 +65,6 @@ func (h *UsersHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.logger.Error("Failed to write response: ", err)
 	}
-}
-
-func (h *UsersHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UsersHandler) GetUser(w http.ResponseWriter, r *http.Request) {

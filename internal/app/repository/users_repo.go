@@ -32,12 +32,19 @@ func (r *UsersRepository) Create(
 	user models.User,
 ) (*models.User, error) {
 	var createdUser models.User
-
-	err := r.db.QueryRow(ctx, `INSERT INTO users (..) VALUES ($..)
-        RETURNING ..`,
-		user.Name, user.HashPassword).Scan(
+	sql := `
+    INSERT INTO users (username, hashed_password, created_at, updated_at, deleted)
+    VALUES ($1, $2, NOW(), NOW(), false)
+    RETURNING user_id, username, hashed_password, created_at, updated_at, deleted
+    `
+	err := r.db.QueryRow(
+		ctx,
+		sql,
+		user.UserName,
+		user.HashPassword,
+	).Scan(
 		&createdUser.ID,
-		&createdUser.Name,
+		&createdUser.UserName,
 		&createdUser.HashPassword,
 		&createdUser.CreatedAt,
 		&createdUser.UpdatedAt,
@@ -59,9 +66,10 @@ func (r *UsersRepository) Get(
 	err := r.db.QueryRow(ctx,
 		`SELECT user_id, name, description
 		FROM users
-		WHERE user_id = $1`, id).Scan(
+		WHERE user_id = $1
+		AND deleted NOT false`, id).Scan(
 		&user.ID,
-		&user.Name,
+		&user.UserName,
 		&user.HashPassword,
 	)
 	if err != nil {
@@ -81,7 +89,7 @@ func (r *UsersRepository) GetUsers(
 
 	var queryParams []interface{}
 
-	queryBuilder.WriteString("SELECT user_id, name, description FROM users")
+	queryBuilder.WriteString("SELECT user_id, username, description FROM users")
 
 	if req.Sorting == "" {
 		req.Sorting = "user_id"
@@ -89,11 +97,11 @@ func (r *UsersRepository) GetUsers(
 
 	if req.Text != "" {
 		queryParams = append(queryParams, "%"+req.Text+"%")
-		queryBuilder.WriteString(fmt.Sprintf(" WHERE name LIKE $%d OR description LIKE $%d",
+		queryBuilder.WriteString(fmt.Sprintf(" WHERE username LIKE $%d OR description LIKE $%d",
 			len(queryParams), len(queryParams)))
 	}
 
-	validColumns := map[string]struct{}{"name": {}, "description": {}, "user_id": {}}
+	validColumns := map[string]struct{}{"username": {}, "description": {}, "user_id": {}}
 	if _, ok := validColumns[req.Sorting]; !ok {
 		return nil, models.ErrInvalidSortingColumn
 	}
@@ -120,7 +128,7 @@ func (r *UsersRepository) GetUsers(
 
 	for rows.Next() {
 		var p models.User
-		if err := rows.Scan(&p.ID, &p.Name, &p.HashPassword); err != nil {
+		if err := rows.Scan(&p.ID, &p.UserName, &p.HashPassword); err != nil {
 			return nil, fmt.Errorf("error scanning user: %w", err)
 		}
 
@@ -138,12 +146,12 @@ func (r *UsersRepository) Update(ctx context.Context, id int, user models.User) 
 	var updatedUser models.User
 
 	err := r.db.QueryRow(ctx,
-		`UPDATE users SET name = $1, description = $2, updated_at=NOW()
+		`UPDATE users SET username = $1, description = $2, updated_at=NOW()
 		WHERE user_id = $3
-        RETURNING user_id, name, description, created_at, updated_at, deleted`,
-		user.Name, user.HashPassword, id).Scan(
+        RETURNING user_id, username, description, created_at, updated_at, deleted`,
+		user.UserName, user.HashPassword, id).Scan(
 		&updatedUser.ID,
-		&updatedUser.Name,
+		&updatedUser.UserName,
 		&updatedUser.HashPassword,
 		&updatedUser.CreatedAt,
 		&updatedUser.UpdatedAt,

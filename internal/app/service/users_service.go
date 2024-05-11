@@ -10,7 +10,7 @@ import (
 )
 
 type UsersServiceInterface interface {
-	CreateUser(ctx context.Context, input models.UserCreateInput) (*models.User, error)
+	RegisterUser(ctx context.Context, input models.UserRegisterInput) (*models.User, error)
 	GetUser(ctx context.Context, id int) (*models.User, error)
 	GetUsers(ctx context.Context, req models.FeedUsersRequest) ([]models.User, error)
 	UpdateUser(ctx context.Context, id int, input models.UserUpdateInput) (*models.User, error)
@@ -25,8 +25,8 @@ func NewUsersService(repo repository.UsersRepositoryInterface) UsersServiceInter
 	return &UsersService{repo: repo}
 }
 
-func (s *UsersService) CreateUser(ctx context.Context, input models.UserCreateInput) (*models.User, error) {
-	if len(input.Name) < 6 {
+func (s *UsersService) RegisterUser(ctx context.Context, input models.UserRegisterInput) (*models.User, error) {
+	if len(input.UserName) < 6 {
 		return nil, models.ErrUsernameTooShort
 	}
 	if len(input.HashPassword) < 6 {
@@ -40,7 +40,7 @@ func (s *UsersService) CreateUser(ctx context.Context, input models.UserCreateIn
 	input.HashPassword = string(hashedPassword)
 
 	user, err := s.repo.Create(ctx, models.User{
-		Name:         input.Name,
+		UserName:     input.UserName,
 		HashPassword: input.HashPassword,
 	})
 	if err != nil {
@@ -82,9 +82,9 @@ func (s *UsersService) GetUsers(ctx context.Context, req models.FeedUsersRequest
 func (s *UsersService) UpdateUser(ctx context.Context, id int,
 	input models.UserUpdateInput,
 ) (*models.User, error) {
-	if input.Name == "" {
+	if input.UserName == "" {
 		return nil, models.ErrUserNameRequired
-	} else if len(input.Name) < 3 {
+	} else if len(input.UserName) < 3 {
 		return nil, models.ErrUserNameTooShort
 	}
 
@@ -93,8 +93,8 @@ func (s *UsersService) UpdateUser(ctx context.Context, id int,
 		return nil, fmt.Errorf("id not found: %w", err)
 	}
 
-	if input.Name != "" {
-		userToUpdate.Name = input.Name
+	if input.UserName != "" {
+		userToUpdate.UserName = input.UserName
 	}
 
 	if input.HashPassword != "" {
