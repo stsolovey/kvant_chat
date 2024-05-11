@@ -6,10 +6,12 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/stsolovey/kvant_chat/internal/models"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthServiceInterface interface {
 	GenerateToken(username string) (string, error)
+	VerifyPassword(storedHash, providedPassword string) bool
 }
 
 type AuthService struct {
@@ -39,4 +41,10 @@ func (s *AuthService) GenerateToken(username string) (string, error) {
 	}
 
 	return tokenString, nil
+}
+
+func (s *AuthService) VerifyPassword(storedHash, providedPassword string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(providedPassword))
+
+	return err == nil
 }
