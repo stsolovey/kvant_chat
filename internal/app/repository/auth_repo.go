@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stsolovey/kvant_chat/internal/models"
@@ -24,9 +25,11 @@ func (r *AuthRepository) GetUserByUsername(
 	username string,
 ) (*models.User, error) {
 	var user models.User
+
 	sql := `SELECT user_id, username, hashed_password, created_at, updated_at, deleted 
 	FROM users WHERE username = $1
 	AND NOT deleted`
+
 	err := r.db.QueryRow(ctx, sql, username).Scan(
 		&user.ID,
 		&user.UserName,
@@ -36,7 +39,8 @@ func (r *AuthRepository) GetUserByUsername(
 		&user.Deleted,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("auth repository GetUserByUsername error: %w", err)
 	}
+
 	return &user, nil
 }
