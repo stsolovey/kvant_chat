@@ -4,9 +4,9 @@ import (
 	"errors"
 )
 
-type APIError struct {
-	Status  int    `json:"status"`
-	Message string `json:"message"`
+type HTTPResponse struct {
+	Data  interface{} `json:"data,omitempty"`
+	Error string      `json:"error,omitempty"`
 }
 
 var (
@@ -22,10 +22,12 @@ var (
 
 	ErrUserWasNotDeleted = errors.New("user was not deleted")
 
-	ErrInvalidTokenClaims = errors.New("invalid token claims: unable to assert to jwt.MapClaims")
-	ErrUsernameTooShort   = errors.New("username must be at least 6 characters long")
-	ErrPasswordTooShort   = errors.New("password must be at least 6 characters long")
-	ErrUsernameExists     = errors.New("user with this name is already exists")
+	ErrInvalidTokenClaims   = errors.New("invalid token claims: unable to assert to jwt.MapClaims")
+	ErrUsernameTooShort     = errors.New("username must be at least 6 characters long")
+	ErrPasswordTooShort     = errors.New("password must be at least 6 characters long")
+	ErrUsernameExists       = errors.New("user with this name is already exists")
+	ErrTokenValidationError = errors.New("token validation error")
+	ErrTokenGenerationError = errors.New("token generation error")
 
 	ErrUnknownError = errors.New("unknown error")
 )
