@@ -10,7 +10,7 @@ import (
 )
 
 type UsersServiceInterface interface {
-	RegisterUser(ctx context.Context, input models.UserRegisterInput) (*models.User, error)
+	RegisterUser(ctx context.Context, input models.UserRegisterInput) (*models.User, string, error)
 	GetUser(ctx context.Context, id int) (*models.User, error)
 	GetUsers(ctx context.Context, req models.FeedUsersRequest) ([]models.User, error)
 	UpdateUser(ctx context.Context, id int, input models.UserUpdateInput) (*models.User, error)
@@ -18,29 +18,30 @@ type UsersServiceInterface interface {
 }
 
 type UsersService struct {
-	repo repository.UsersRepositoryInterface
+	repo        repository.UsersRepositoryInterface
+	authService AuthServiceInterface
 }
 
 func NewUsersService(repo repository.UsersRepositoryInterface) UsersServiceInterface {
 	return &UsersService{repo: repo}
 }
 
-func (s *UsersService) RegisterUser(ctx context.Context, input models.UserRegisterInput) (*models.User, error) {
+func (s *UsersService) RegisterUser(ctx context.Context, input models.UserRegisterInput) (*models.User, string, error) {
 	if len(input.UserName) < 6 {
-		return nil, models.ErrUsernameTooShort
+		return nil, "", models.ErrUsernameTooShort
 	}
 	if len(input.HashPassword) < 6 {
-		return nil, models.ErrPasswordTooShort
+		return nil, "", models.ErrPasswordTooShort
 	}
 
 	_, err := s.repo.GetUserByUsername(ctx, input.UserName)
 	if err == nil {
-		return nil, models.ErrUsernameExists
+		return nil, "", models.ErrUsernameExists
 	}
 
 	hashedPassword, err := util.HashPassword(input.HashPassword)
 	if err != nil {
-		return nil, fmt.Errorf("failed to hash password: %w", err)
+		return nil, "", fmt.Errorf("failed to hash password: %w", err)
 	}
 	input.HashPassword = string(hashedPassword)
 
@@ -49,9 +50,13 @@ func (s *UsersService) RegisterUser(ctx context.Context, input models.UserRegist
 		HashPassword: input.HashPassword,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create user: %w", err)
+		return nil, "", fmt.Errorf("failed to create user: %w", err)
 	}
-	return user, nil
+	token, err := s.authService.GenerateToken(user.UserName)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to generate token: %w", err)
+	}
+	return user, token, nil
 }
 
 func (s *UsersService) GetUser(ctx context.Context, id int) (*models.User, error) {
