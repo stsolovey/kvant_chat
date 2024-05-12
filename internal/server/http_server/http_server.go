@@ -8,40 +8,16 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 	"github.com/sirupsen/logrus"
-	"github.com/stsolovey/kvant_chat/internal/app/handler"
 	"github.com/stsolovey/kvant_chat/internal/app/service"
 	"github.com/stsolovey/kvant_chat/internal/config"
-	"github.com/stsolovey/kvant_chat/internal/middleware"
 )
 
 type Server struct {
 	config *config.Config
 	logger *logrus.Logger
 	server *http.Server
-}
-
-func configureRoutes(
-	r chi.Router,
-	log *logrus.Logger,
-	usersServ service.UsersServiceInterface,
-	authServ service.AuthServiceInterface,
-) {
-	authHandler := handler.NewAuthHandler(authServ, log)
-	usersHandler := handler.NewUsersHandler(usersServ, log)
-
-	r.Route("/api/v1", func(r chi.Router) {
-		r.Route("/user", func(r chi.Router) {
-			r.With(middleware.RateLimiterMiddleware).Post("/login", authHandler.Login)
-			r.With(middleware.RateLimiterMiddleware).Post("/register", usersHandler.RegisterUser)
-			r.Get("/", usersHandler.GetUsers)
-			r.Route("/{id}", func(r chi.Router) {
-				r.Get("/", usersHandler.GetUser)
-				r.Patch("/", usersHandler.UpdateUser)
-				r.Delete("/", usersHandler.DeleteUser)
-			})
-		})
-	})
 }
 
 func CreateServer(
@@ -52,6 +28,10 @@ func CreateServer(
 	authServ service.AuthServiceInterface,
 ) *Server {
 	r := chi.NewRouter()
+
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+
 	configureRoutes(r, log, usersServ, authServ)
 
 	s := &http.Server{
