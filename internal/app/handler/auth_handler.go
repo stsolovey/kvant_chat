@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/sirupsen/logrus"
@@ -33,8 +34,21 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	username := r.FormValue("username")
-	if username == "" {
-		http.Error(w, "Username is required", http.StatusBadRequest)
+	password := r.FormValue("password")
+	if username == "" || password == "" {
+		http.Error(w, "Username and password are required", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.service.GetUserByUsername(r.Context(), username)
+	if err != nil {
+		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+
+		return
+	}
+
+	if !h.service.VerifyPassword(user.HashPassword, password) {
+		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 
 		return
 	}
@@ -46,15 +60,16 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:  "session_token",
-		Value: tokenString,
-		Path:  "/",
-	})
-
+	w.Header().Set("Content-Type", "application/json")
+	response := map[string]string{"token": tokenString}
+	jsonResponse, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, "Error generating response", http.StatusInternalServerError)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 
-	_, err = w.Write([]byte("Logged in successfully with token: " + tokenString))
+	_, err = w.Write(jsonResponse)
 	if err != nil {
 		h.logger.Error("Failed to write response: ", err)
 	}
