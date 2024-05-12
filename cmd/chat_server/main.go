@@ -44,9 +44,10 @@ func main() {
 		log.WithError(err).Panic("Failed to execute migrations")
 	}
 
+	authRepo := repository.NewAuthRepository(storageSystem.DB())
 	usersRepo := repository.NewUsersRepository(storageSystem.DB())
 
-	authService := service.NewAuthService(cfg.SigningKey)
+	authService := service.NewAuthService(authRepo, cfg.SigningKey)
 	usersService := service.NewUsersService(usersRepo)
 
 	http_server := http_server.CreateServer(cfg, log, "8080", usersService, authService)
