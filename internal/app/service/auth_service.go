@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
-	"github.com/sirupsen/logrus"
 	"github.com/stsolovey/kvant_chat/internal/app/repository"
 	"github.com/stsolovey/kvant_chat/internal/models"
 	"golang.org/x/crypto/bcrypt"
@@ -33,7 +32,12 @@ func NewAuthService(repo repository.AuthRepositoryInterface, signingKey []byte) 
 
 func (s *AuthService) GenerateToken(username string) (string, error) {
 	token := jwt.New(jwt.SigningMethodHS256)
-	claims := token.Claims.(jwt.MapClaims)
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", models.ErrTokenGenerationError
+	}
+
 	claims["username"] = username
 	claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
 
@@ -41,14 +45,16 @@ func (s *AuthService) GenerateToken(username string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to sign token: %w", err)
 	}
+
 	return tokenString, nil
 }
 
 func (s *AuthService) ValidateToken(tokenString string) (*jwt.Token, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			return nil, models.ErrTokenValidationError
 		}
+
 		return s.signingKey, nil
 	})
 
@@ -56,7 +62,7 @@ func (s *AuthService) ValidateToken(tokenString string) (*jwt.Token, error) {
 		return token, nil
 	}
 
-	return nil, err
+	return nil, fmt.Errorf("validation error: %w", err)
 }
 
 func (s *AuthService) VerifyPassword(storedHash, providedPassword string) bool {
@@ -68,8 +74,8 @@ func (s *AuthService) VerifyPassword(storedHash, providedPassword string) bool {
 func (s *AuthService) GetUserByUsername(ctx context.Context, username string) (*models.User, error) {
 	user, err := s.repo.GetUserByUsername(ctx, username)
 	if err != nil {
-		logrus.WithError(err).Errorf("Failed to retrieve user: %s", username)
 		return nil, fmt.Errorf("service: failed to get user by username %s: %w", username, err)
 	}
+
 	return user, nil
 }
