@@ -1,10 +1,13 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt"
+	"github.com/sirupsen/logrus"
+	"github.com/stsolovey/kvant_chat/internal/app/repository"
 	"github.com/stsolovey/kvant_chat/internal/models"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -12,14 +15,17 @@ import (
 type AuthServiceInterface interface {
 	GenerateToken(username string) (string, error)
 	VerifyPassword(storedHash, providedPassword string) bool
+	GetUserByUsername(ctx context.Context, username string) (*models.User, error)
 }
 
 type AuthService struct {
+	repo       repository.AuthRepositoryInterface
 	signingKey []byte
 }
 
-func NewAuthService(signingKey []byte) *AuthService {
+func NewAuthService(repo repository.AuthRepositoryInterface, signingKey []byte) *AuthService {
 	return &AuthService{
+		repo:       repo,
 		signingKey: signingKey,
 	}
 }
@@ -47,4 +53,13 @@ func (s *AuthService) VerifyPassword(storedHash, providedPassword string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(providedPassword))
 
 	return err == nil
+}
+
+func (s *AuthService) GetUserByUsername(ctx context.Context, username string) (*models.User, error) {
+	user, err := s.repo.GetUserByUsername(ctx, username)
+	if err != nil {
+		logrus.WithError(err).Errorf("Failed to retrieve user: %s", username)
+		return nil, fmt.Errorf("service: failed to get user by username %s: %w", username, err)
+	}
+	return user, nil
 }
