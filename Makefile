@@ -1,5 +1,5 @@
 # Пути
-CMD_SEVERR_PATH=./cmd/chat_server/
+CMD_SERVER_PATH=./cmd/chat_server/
 BIN_PATH=./bin/
 SERVER_EXECUTABLE=chat_server
 
@@ -21,7 +21,8 @@ down-deps:
 # Компиляция проекта
 build:
 	mkdir -p $(BIN_PATH)
-	go build -o $(BIN_PATH)$(SERVER_EXECUTABLE) $(CMD_PATH)main.go
+	go build -o $(BIN_PATH)$(SERVER_EXECUTABLE) $(CMD_SERVER_PATH)main.go
+
 
 # View output (компоуза)
 logs:
