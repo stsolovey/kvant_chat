@@ -47,7 +47,7 @@ func (h *UsersHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		HashPassword: r.FormValue("password"),
 	}
 
-	createdUser, err := h.service.RegisterUser(r.Context(), userRegisterInput)
+	createdUser, tokenString, err := h.service.RegisterUser(r.Context(), userRegisterInput)
 	if err != nil {
 		var status int
 		switch {
@@ -63,7 +63,13 @@ func (h *UsersHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := json.Marshal(createdUser)
+	w.Header().Set("Content-Type", "application/json")
+	createdUserWithToken := map[string]interface{}{
+		"user":  createdUser,
+		"token": tokenString,
+	}
+
+	jsonResponse, err := json.Marshal(createdUserWithToken)
 	if err != nil {
 		http.Error(w, "Failed to parse user response", http.StatusInternalServerError)
 		return
@@ -71,7 +77,7 @@ func (h *UsersHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_, err = w.Write(response)
+	_, err = w.Write(jsonResponse)
 	if err != nil {
 		h.logger.Error("Failed to write response: ", err)
 	}
