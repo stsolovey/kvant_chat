@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/sirupsen/logrus"
 	"github.com/stsolovey/kvant_chat/internal/app/service"
+	"github.com/stsolovey/kvant_chat/internal/utils"
 )
 
 type AuthHandler struct {
@@ -22,55 +22,43 @@ func NewAuthHandler(s service.AuthServiceInterface, logger *logrus.Logger) *Auth
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
-
-		return
-	}
-
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Error parsing form", http.StatusBadRequest)
+		utils.WriteErrorResponse(w, http.StatusMethodNotAllowed, "Only POST method is allowed", h.logger)
 
 		return
 	}
 
 	username := r.FormValue("username")
 	password := r.FormValue("password")
+
 	if username == "" || password == "" {
-		http.Error(w, "Username and password are required", http.StatusBadRequest)
+		utils.WriteErrorResponse(w, http.StatusBadRequest, "Username and password are required", h.logger)
+
 		return
 	}
 
 	user, err := h.service.GetUserByUsername(r.Context(), username)
 	if err != nil {
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		utils.WriteErrorResponse(w, http.StatusUnauthorized, "Invalid credentials", h.logger)
 
 		return
 	}
 
 	if !h.service.VerifyPassword(user.HashPassword, password) {
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		utils.WriteErrorResponse(w, http.StatusUnauthorized, "Invalid credentials", h.logger)
 
 		return
 	}
 
 	tokenString, err := h.service.GenerateToken(username)
 	if err != nil {
-		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		utils.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to generate token", h.logger)
 
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	response := map[string]string{"token": tokenString}
-	jsonResponse, err := json.Marshal(response)
-	if err != nil {
-		http.Error(w, "Error generating response", http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
 
-	_, err = w.Write(jsonResponse)
-	if err != nil {
-		h.logger.Error("Failed to write response: ", err)
-	}
+	responseData := map[string]interface{}{"token": tokenString}
+
+	utils.WriteOkResponse(w, http.StatusOK, responseData, h.logger)
 }

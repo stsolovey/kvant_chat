@@ -1,21 +1,14 @@
 package handler
 
 import (
-	// "encoding/json"
-	// "fmt"
-	"encoding/json"
 	"errors"
 	"net/http"
 
 	"github.com/sirupsen/logrus"
 	"github.com/stsolovey/kvant_chat/internal/app/service"
 	"github.com/stsolovey/kvant_chat/internal/models"
+	"github.com/stsolovey/kvant_chat/internal/utils"
 )
-
-type Response struct {
-	Data  interface{} `json:"data,omitempty"`
-	Error *string     `json:"error,omitempty"`
-}
 
 type UsersHandler struct {
 	service service.UsersServiceInterface
@@ -31,66 +24,43 @@ func NewUsersHandler(s service.UsersServiceInterface, logger *logrus.Logger) *Us
 
 func (h *UsersHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
+		utils.WriteErrorResponse(w, http.StatusMethodNotAllowed, "Only POST method is allowed", h.logger)
 
 		return
 	}
 
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Error parsing form", http.StatusBadRequest)
-
-		return
-	}
-
-	userRegisterInput := models.UserRegisterInput{
+	input := models.UserRegisterInput{
 		UserName:     r.FormValue("username"),
 		HashPassword: r.FormValue("password"),
 	}
 
-	createdUser, tokenString, err := h.service.RegisterUser(r.Context(), userRegisterInput)
+	user, token, err := h.service.RegisterUser(r.Context(), input)
 	if err != nil {
-		var status int
-		switch {
-		case errors.Is(err, models.ErrUsernameExists):
-			status = http.StatusConflict
-		case errors.Is(err, models.ErrUsernameTooShort), errors.Is(err, models.ErrPasswordTooShort):
-			status = http.StatusBadRequest
-		default:
-			status = http.StatusInternalServerError
-		}
-		http.Error(w, err.Error(), status)
+		handleServiceError(w, err, h.logger)
 
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	createdUserWithToken := map[string]interface{}{
-		"user":  createdUser,
-		"token": tokenString,
+	responseData := map[string]interface{}{"user": user, "token": token}
+	utils.WriteOkResponse(w, http.StatusOK, responseData, h.logger)
+}
+
+func handleServiceError(w http.ResponseWriter, err error, log *logrus.Logger) {
+	var statusCode int
+
+	var errMsg string
+
+	switch {
+	case errors.Is(err, models.ErrUsernameExists):
+		statusCode = http.StatusConflict
+		errMsg = "Username already exists"
+	case errors.Is(err, models.ErrUsernameTooShort), errors.Is(err, models.ErrPasswordTooShort):
+		statusCode = http.StatusBadRequest
+		errMsg = err.Error()
+	default:
+		statusCode = http.StatusInternalServerError
+		errMsg = "Internal server error"
 	}
 
-	jsonResponse, err := json.Marshal(createdUserWithToken)
-	if err != nil {
-		http.Error(w, "Failed to parse user response", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_, err = w.Write(jsonResponse)
-	if err != nil {
-		h.logger.Error("Failed to write response: ", err)
-	}
-}
-
-func (h *UsersHandler) GetUser(w http.ResponseWriter, r *http.Request) {
-}
-
-func (h *UsersHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
-}
-
-func (h *UsersHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
-}
-
-func (h *UsersHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	utils.WriteErrorResponse(w, statusCode, errMsg, log)
 }
