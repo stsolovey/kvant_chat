@@ -1,19 +1,14 @@
 package handler
 
 import (
-	// "encoding/json"
-	// "fmt"
+	"errors"
 	"net/http"
 
 	"github.com/sirupsen/logrus"
 	"github.com/stsolovey/kvant_chat/internal/app/service"
-	// "github.com/stsolovey/kvant_chat/internal/models"
+	"github.com/stsolovey/kvant_chat/internal/models"
+	"github.com/stsolovey/kvant_chat/internal/utils"
 )
-
-type Response struct {
-	Data  interface{} `json:"data,omitempty"`
-	Error *string     `json:"error,omitempty"`
-}
 
 type UsersHandler struct {
 	service service.UsersServiceInterface
@@ -27,22 +22,45 @@ func NewUsersHandler(s service.UsersServiceInterface, logger *logrus.Logger) *Us
 	}
 }
 
-func (h *UsersHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
+func (h *UsersHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		utils.WriteErrorResponse(w, http.StatusMethodNotAllowed, "Only POST method is allowed", h.logger)
 
+		return
+	}
+
+	input := models.UserRegisterInput{
+		UserName:     r.FormValue("username"),
+		HashPassword: r.FormValue("password"),
+	}
+
+	userResponse, token, err := h.service.RegisterUser(r.Context(), input)
+	if err != nil {
+		handleServiceError(w, err, h.logger)
+
+		return
+	}
+
+	responseData := map[string]interface{}{"user": userResponse, "token": token}
+	utils.WriteOkResponse(w, http.StatusOK, responseData, h.logger)
 }
 
-func (h *UsersHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+func handleServiceError(w http.ResponseWriter, err error, log *logrus.Logger) {
+	var statusCode int
 
-}
+	var errMsg string
 
-func (h *UsersHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
+	switch {
+	case errors.Is(err, models.ErrUsernameExists):
+		statusCode = http.StatusConflict
+		errMsg = "Username already exists"
+	case errors.Is(err, models.ErrUsernameTooShort), errors.Is(err, models.ErrPasswordTooShort):
+		statusCode = http.StatusBadRequest
+		errMsg = err.Error()
+	default:
+		statusCode = http.StatusInternalServerError
+		errMsg = "Internal server error"
+	}
 
-}
-
-func (h *UsersHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
-
-}
-
-func (h *UsersHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
-
+	utils.WriteErrorResponse(w, statusCode, errMsg, log)
 }

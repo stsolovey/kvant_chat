@@ -1,8 +1,7 @@
 # Пути
-CMD_SEVERR_PATH=./cmd/chat_server/
+CMD_SERVER_PATH=./cmd/chat_server/
 BIN_PATH=./bin/
 SERVER_EXECUTABLE=chat_server
-
 
 # Запуск окружения и сервера
 ups: up-deps run_server
@@ -22,7 +21,8 @@ down-deps:
 # Компиляция проекта
 build:
 	mkdir -p $(BIN_PATH)
-	go build -o $(BIN_PATH)$(SERVER_EXECUTABLE) $(CMD_PATH)main.go
+	go build -o $(BIN_PATH)$(SERVER_EXECUTABLE) $(CMD_SERVER_PATH)main.go
+
 
 # View output (компоуза)
 logs:
@@ -42,8 +42,6 @@ stop-app:
 		kill `cat $(BIN_PATH)PID` || true; \
 		rm $(BIN_PATH)PID; \
 	fi
-
-
 
 # Остановка всего: приложения и зависимостей
 down: stop-app down-deps
@@ -70,3 +68,20 @@ tidy:
 
 lint: tidy
 	golangci-lint run ./...
+
+help:
+	@echo "Available commands:"
+	@echo "  ups               - Start dependencies and the server"
+	@echo "  run_server        - Start the server using 'go run'"
+	@echo "  up-deps           - Start environment using Docker Compose"
+	@echo "  down-deps         - Stop environment using Docker Compose"
+	@echo "  build             - Compile the project"
+	@echo "  logs              - View Docker Compose logs"
+	@echo "  run-app           - Run the compiled application"
+	@echo "  run-app-background- Run the compiled application in the background"
+	@echo "  stop-app          - Stop the application using its PID"
+	@echo "  down              - Stop application and dependencies"
+	@echo "  test              - Start environment and run tests"
+	@echo "  testv             - Start environment, run tests verbosely, and clean up"
+	@echo "  tidy              - Format and tidy up the Go code"
+	@echo "  lint              - Lint and format the project code"

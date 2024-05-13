@@ -8,18 +8,20 @@ import (
 )
 
 var (
-	errMissingHost     = errors.New("postgresHost environment variable is missing")
-	errMissingPort     = errors.New("postgresPort environment variable is missing")
-	errMissingUser     = errors.New("postgresUser environment variable is missing")
-	errMissingPassword = errors.New("postgresPassword environment variable is missing")
-	errMissingDB       = errors.New("postgresDB environment variable is missing")
-	errMissingAppPort  = errors.New("appPort environment variable is missing")
+	errMissingHost      = errors.New("postgresHost environment variable is missing")
+	errMissingPort      = errors.New("postgresPort environment variable is missing")
+	errMissingUser      = errors.New("postgresUser environment variable is missing")
+	errMissingPassword  = errors.New("postgresPassword environment variable is missing")
+	errMissingDB        = errors.New("postgresDB environment variable is missing")
+	errMissingAppPort   = errors.New("appPort environment variable is missing")
+	errMissingJwtSecret = errors.New("jwtSecret environment variable is missing")
 )
 
 type Config struct {
 	DatabaseURL string
 	AppPort     string
 	AppHost     string
+	SigningKey  []byte
 }
 
 func New() (*Config, error) {
@@ -30,6 +32,8 @@ func New() (*Config, error) {
 	postgresDB := os.Getenv("POSTGRES_DB")
 	appHost := os.Getenv("APP_HOST")
 	appPort := os.Getenv("APP_PORT")
+	jwtSecret := os.Getenv("JWT_SECRET")
+	signingKey := []byte(jwtSecret)
 
 	var dsn string
 
@@ -46,6 +50,8 @@ func New() (*Config, error) {
 		return nil, errMissingDB
 	case appPort == "":
 		return nil, errMissingAppPort
+	case jwtSecret == "" || len(signingKey) == 0:
+		return nil, errMissingJwtSecret
 	default:
 		hostPort := net.JoinHostPort(postgresHost, postgresPort)
 		dsn = fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable",
@@ -55,6 +61,7 @@ func New() (*Config, error) {
 			DatabaseURL: dsn,
 			AppPort:     appPort,
 			AppHost:     appHost,
+			SigningKey:  signingKey,
 		}, nil
 	}
 }

@@ -1,4 +1,4 @@
-package http_server
+package httpserver
 
 import (
 	"context"
@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 	"github.com/sirupsen/logrus"
-	"github.com/stsolovey/kvant_chat/internal/app/handler"
 	"github.com/stsolovey/kvant_chat/internal/app/service"
 	"github.com/stsolovey/kvant_chat/internal/config"
 )
@@ -20,29 +20,19 @@ type Server struct {
 	server *http.Server
 }
 
-func configureRoutes(r chi.Router, log *logrus.Logger, usersServ service.UsersServiceInterface) {
-	usersHandler := handler.NewUsersHandler(usersServ, log)
-
-	r.Route("/api/v1/user", func(r chi.Router) {
-		r.Post("/", usersHandler.CreateUser)
-		r.Get("/", usersHandler.GetUsers)
-
-		r.Route("/{id}", func(r chi.Router) {
-			r.Get("/", usersHandler.GetUser)
-			r.Patch("/", usersHandler.UpdateUser)
-			r.Delete("/", usersHandler.DeleteUser)
-		})
-	})
-}
-
 func CreateServer(
 	cfg *config.Config,
 	log *logrus.Logger,
 	port string,
 	usersServ service.UsersServiceInterface,
+	authServ service.AuthServiceInterface,
 ) *Server {
 	r := chi.NewRouter()
-	configureRoutes(r, log, usersServ)
+
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+
+	configureRoutes(r, log, usersServ, authServ)
 
 	s := &http.Server{
 		Addr:              ":" + port,
