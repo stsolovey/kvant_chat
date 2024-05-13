@@ -34,14 +34,14 @@ func (h *UsersHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		HashPassword: r.FormValue("password"),
 	}
 
-	user, token, err := h.service.RegisterUser(r.Context(), input)
+	userResponse, token, err := h.service.RegisterUser(r.Context(), input)
 	if err != nil {
 		handleServiceError(w, err, h.logger)
 
 		return
 	}
 
-	responseData := map[string]interface{}{"user": user, "token": token}
+	responseData := map[string]interface{}{"user": userResponse, "token": token}
 	utils.WriteOkResponse(w, http.StatusOK, responseData, h.logger)
 }
 

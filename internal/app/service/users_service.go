@@ -11,7 +11,7 @@ import (
 )
 
 type UsersServiceInterface interface {
-	RegisterUser(ctx context.Context, input models.UserRegisterInput) (*models.User, string, error)
+	RegisterUser(ctx context.Context, input models.UserRegisterInput) (*models.UserResponse, string, error)
 }
 
 type UsersService struct {
@@ -29,7 +29,7 @@ func NewUsersService(
 	}
 }
 
-func (s *UsersService) RegisterUser(ctx context.Context, input models.UserRegisterInput) (*models.User, string, error) {
+func (s *UsersService) RegisterUser(ctx context.Context, input models.UserRegisterInput) (*models.UserResponse, string, error) {
 	if len(input.UserName) < 6 {
 		return nil, "", models.ErrUsernameTooShort
 	}
@@ -62,10 +62,17 @@ func (s *UsersService) RegisterUser(ctx context.Context, input models.UserRegist
 		return nil, "", fmt.Errorf("failed to create user: %w", err)
 	}
 
+	userResponse := &models.UserResponse{
+		ID:        user.ID,
+		UserName:  user.UserName,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	}
+
 	token, err := s.authService.GenerateToken(user.UserName)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to generate token: %w", err)
 	}
 
-	return user, token, nil
+	return userResponse, token, nil
 }

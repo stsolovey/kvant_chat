@@ -11,6 +11,13 @@ type User struct {
 	Deleted      bool      `db:"deleted" json:"deleted,omitempty"`
 }
 
+type UserResponse struct {
+	ID        int       `json:"id"`
+	UserName  string    `json:"username"`
+	CreatedAt time.Time `json:"createdAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt,omitempty"`
+}
+
 type UserRegisterInput struct {
 	UserName     string `json:"username"`
 	HashPassword string `json:"hashPassword"`
