@@ -6,16 +6,16 @@ import (
 	"golang.org/x/time/rate"
 )
 
-func RateLimiterMiddleware(next http.Handler) http.Handler {
-	limiter := rate.NewLimiter(10, 2)
+func RateLimiterMiddleware(limiter *rate.Limiter) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !limiter.Allow() {
+				http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !limiter.Allow() {
-			http.Error(w, "Too many requests", http.StatusTooManyRequests)
+				return
+			}
 
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
+			next.ServeHTTP(w, r)
+		})
+	}
 }

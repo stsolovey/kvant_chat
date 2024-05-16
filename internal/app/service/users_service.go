@@ -29,7 +29,10 @@ func NewUsersService(
 	}
 }
 
-func (s *UsersService) RegisterUser(ctx context.Context, input models.UserRegisterInput) (*models.UserResponse, string, error) {
+func (s *UsersService) RegisterUser(
+	ctx context.Context,
+	input models.UserRegisterInput,
+) (*models.UserResponse, string, error) {
 	if len(input.UserName) < 6 {
 		return nil, "", models.ErrUsernameTooShort
 	}
