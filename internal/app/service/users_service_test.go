@@ -28,7 +28,6 @@ func (m *MockUsersRepo) GetUserByUsername(ctx context.Context, username string) 
 	return nil, args.Error(1)
 }
 
-// Mock AuthServiceInterface including all methods
 type MockAuthService struct {
 	mock.Mock
 }
@@ -68,7 +67,6 @@ func TestRegisterUser(t *testing.T) {
 		HashPassword: "password123",
 	}
 
-	// Setup expected responses
 	expectedUser := &models.User{
 		UserName:     "newuser",
 		HashPassword: "hashedpassword123",
