@@ -5,6 +5,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stsolovey/kvant_chat/internal/app/handler"
 	"github.com/stsolovey/kvant_chat/internal/app/service"
+	"github.com/stsolovey/kvant_chat/internal/middleware"
+	"golang.org/x/time/rate"
 )
 
 func configureRoutes(
@@ -16,10 +18,13 @@ func configureRoutes(
 	authHandler := handler.NewAuthHandler(authServ, log)
 	usersHandler := handler.NewUsersHandler(usersServ, log)
 
+	loginLimiter := rate.NewLimiter(1, 5)
+	registerLimiter := rate.NewLimiter(1, 3)
+
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Route("/user", func(r chi.Router) {
-			r.Post("/login", authHandler.Login)            // .With(middleware.RateLimiterMiddleware).
-			r.Post("/register", usersHandler.RegisterUser) // .With(middleware.RateLimiterMiddleware).
+			r.With(middleware.RateLimiterMiddleware(loginLimiter)).Post("/login", authHandler.Login)
+			r.With(middleware.RateLimiterMiddleware(registerLimiter)).Post("/register", usersHandler.RegisterUser)
 		})
 	})
 }
