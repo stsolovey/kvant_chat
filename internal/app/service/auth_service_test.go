@@ -8,9 +8,8 @@ import (
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"golang.org/x/crypto/bcrypt"
-
 	"github.com/stsolovey/kvant_chat/internal/models"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type MockAuthRepo struct {
