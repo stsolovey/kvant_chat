@@ -25,7 +25,7 @@ var (
 	ErrInvalidTokenClaims   = errors.New("invalid token claims: unable to assert to jwt.MapClaims")
 	ErrUsernameTooShort     = errors.New("username must be at least 6 characters long")
 	ErrPasswordTooShort     = errors.New("password must be at least 6 characters long")
-	ErrUsernameExists       = errors.New("user with this name is already exists")
+	ErrUsernameExists       = errors.New("username already exists")
 	ErrTokenValidationError = errors.New("token validation error")
 	ErrTokenGenerationError = errors.New("token generation error")
 
