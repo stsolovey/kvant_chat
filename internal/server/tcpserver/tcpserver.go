@@ -2,28 +2,30 @@ package tcpserver
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"net"
 	"strings"
 	"sync"
 
 	"github.com/sirupsen/logrus"
+	"github.com/stsolovey/kvant_chat/internal/config"
 	"github.com/stsolovey/kvant_chat/internal/models"
 )
 
 type Server struct {
+	cfg       *config.Config
 	log       *logrus.Logger
-	port      string
 	rooms     map[string]*models.Room
 	mutex     *sync.Mutex
 	listener  net.Listener
 	connUsers map[net.Conn]*models.User
 }
 
-func CreateServer(port string, logger *logrus.Logger) *Server {
+func CreateServer(config *config.Config, logger *logrus.Logger) *Server {
 	return &Server{
+		cfg:       config,
 		log:       logger,
-		port:      port,
 		rooms:     make(map[string]*models.Room),
 		mutex:     &sync.Mutex{},
 		connUsers: make(map[net.Conn]*models.User),
@@ -37,19 +39,19 @@ func (s *Server) getUserFromConn(conn net.Conn) *models.User {
 	return s.connUsers[conn]
 }
 
-func (s *Server) Start() {
+func (s *Server) Start(ctx context.Context) error {
 	var err error
 
-	s.listener, err = net.Listen("tcp", ":"+s.port)
+	s.listener, err = net.Listen("tcp", ":"+s.cfg.TCPPort)
 	if err != nil {
-		s.log.WithError(err).Error("Error starting TCP server:", err)
+		<-ctx.Done()
 
-		return
+		return fmt.Errorf("error starting TCP server: %w", err)
 	}
 
 	defer s.listener.Close()
 
-	s.log.Info("TCP Server listening on port", s.port)
+	s.log.Info("TCP Server listening on port", s.cfg.TCPPort)
 
 	for {
 		conn, err := s.listener.Accept()
