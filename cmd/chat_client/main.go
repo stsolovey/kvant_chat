@@ -35,7 +35,9 @@ func main() {
 	url := "http://localhost:8080/login"
 	data := "username=" + username
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	const timeoutDuration = 10 * time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
+
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBufferString(data))

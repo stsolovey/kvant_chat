@@ -76,8 +76,13 @@ func (s *Storage) Migrate(logger *logrus.Logger) error {
 }
 
 func (s *Storage) WaitForDatabase(ctx context.Context, logger *logrus.Logger) error {
-	ticker := time.NewTicker(2 * time.Second)
-	timeout := time.After(60 * time.Second)
+	const (
+		tickerInterval  = 2 * time.Second
+		timeoutDuration = 60 * time.Second
+	)
+
+	ticker := time.NewTicker(tickerInterval)
+	timeout := time.After(timeoutDuration)
 
 	for {
 		select {

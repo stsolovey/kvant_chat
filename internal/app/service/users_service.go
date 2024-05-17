@@ -33,11 +33,16 @@ func (s *UsersService) RegisterUser(
 	ctx context.Context,
 	input models.UserRegisterInput,
 ) (*models.UserResponse, string, error) {
-	if len(input.UserName) < 6 {
+	const (
+		minUsernameLength = 6
+		minPasswordLength = 6
+	)
+
+	if len(input.UserName) < minUsernameLength {
 		return nil, "", models.ErrUsernameTooShort
 	}
 
-	if len(input.HashPassword) < 6 {
+	if len(input.HashPassword) < minPasswordLength {
 		return nil, "", models.ErrPasswordTooShort
 	}
 
