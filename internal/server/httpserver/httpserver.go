@@ -32,7 +32,6 @@ type Server struct {
 func CreateServer(
 	cfg *config.Config,
 	log *logrus.Logger,
-	port string,
 	usersServ service.UsersServiceInterface,
 	authServ service.AuthServiceInterface,
 ) *Server {
@@ -44,7 +43,7 @@ func CreateServer(
 	configureRoutes(r, log, usersServ, authServ)
 
 	s := &http.Server{
-		Addr:              ":" + port,
+		Addr:              ":" + cfg.AppPort,
 		Handler:           r,
 		ReadHeaderTimeout: readHeaderTimeoutDuration,
 		ReadTimeout:       readTimeoutDuration,
