@@ -14,6 +14,15 @@ import (
 	"github.com/stsolovey/kvant_chat/internal/config"
 )
 
+const (
+	readHeaderTimeoutDuration = 10 * time.Second
+	readTimeoutDuration       = 15 * time.Second
+	writeTimeoutDuration      = 15 * time.Second
+	idleTimeoutDuration       = 60 * time.Second
+
+	shutdownTimeoutDuration = 5 * time.Second
+)
+
 type Server struct {
 	config *config.Config
 	logger *logrus.Logger
@@ -23,7 +32,6 @@ type Server struct {
 func CreateServer(
 	cfg *config.Config,
 	log *logrus.Logger,
-	port string,
 	usersServ service.UsersServiceInterface,
 	authServ service.AuthServiceInterface,
 ) *Server {
@@ -35,12 +43,12 @@ func CreateServer(
 	configureRoutes(r, log, usersServ, authServ)
 
 	s := &http.Server{
-		Addr:              ":" + port,
+		Addr:              ":" + cfg.AppPort,
 		Handler:           r,
-		ReadHeaderTimeout: 10 * time.Second,
-		ReadTimeout:       15 * time.Second,
-		WriteTimeout:      15 * time.Second,
-		IdleTimeout:       60 * time.Second,
+		ReadHeaderTimeout: readHeaderTimeoutDuration,
+		ReadTimeout:       readTimeoutDuration,
+		WriteTimeout:      writeTimeoutDuration,
+		IdleTimeout:       idleTimeoutDuration,
 	}
 
 	return &Server{
@@ -57,7 +65,7 @@ func (s *Server) Start(ctx context.Context) error {
 		<-ctx.Done()
 		s.logger.Info("Server is shutting down...")
 
-		ctxShutdown, cancel := context.WithTimeout(ctx, 5*time.Second)
+		ctxShutdown, cancel := context.WithTimeout(ctx, shutdownTimeoutDuration)
 		defer cancel()
 
 		if err := s.server.Shutdown(ctxShutdown); err != nil {

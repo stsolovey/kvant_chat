@@ -38,8 +38,10 @@ func (s *AuthService) GenerateToken(username string) (string, error) {
 		return "", models.ErrTokenGenerationError
 	}
 
+	const tokenDuration = 24 * time.Hour
+
 	claims["username"] = username
-	claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
+	claims["exp"] = time.Now().Add(tokenDuration).Unix()
 
 	tokenString, err := token.SignedString(s.signingKey)
 	if err != nil {

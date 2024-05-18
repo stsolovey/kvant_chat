@@ -18,13 +18,20 @@ func configureRoutes(
 	authHandler := handler.NewAuthHandler(authServ, log)
 	usersHandler := handler.NewUsersHandler(usersServ, log)
 
-	loginLimiter := rate.NewLimiter(1, 5)
-	registerLimiter := rate.NewLimiter(1, 3)
+	const (
+		loginRequestsPerSecond = 1
+		loginBurstSize         = 5
+		regisRequestsPerSecond = 1
+		regisBurstSize         = 3
+	)
+
+	loginLimiter := rate.NewLimiter(loginRequestsPerSecond, loginBurstSize)
+	regisLimiter := rate.NewLimiter(regisRequestsPerSecond, regisBurstSize)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Route("/user", func(r chi.Router) {
 			r.With(middleware.RateLimiterMiddleware(loginLimiter)).Post("/login", authHandler.Login)
-			r.With(middleware.RateLimiterMiddleware(registerLimiter)).Post("/register", usersHandler.RegisterUser)
+			r.With(middleware.RateLimiterMiddleware(regisLimiter)).Post("/register", usersHandler.RegisterUser)
 		})
 	})
 }

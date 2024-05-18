@@ -12,6 +12,7 @@ import (
 	"github.com/stsolovey/kvant_chat/internal/config"
 	"github.com/stsolovey/kvant_chat/internal/logger"
 	"github.com/stsolovey/kvant_chat/internal/server/httpserver"
+	"github.com/stsolovey/kvant_chat/internal/server/tcpserver"
 	"github.com/stsolovey/kvant_chat/internal/storage"
 )
 
@@ -50,13 +51,25 @@ func main() {
 	authService := service.NewAuthService(authRepo, cfg.SigningKey)
 	usersService := service.NewUsersService(usersRepo, authService)
 
-	httpserver := httpserver.CreateServer(cfg, log, "8080", usersService, authService)
+	httpserver := httpserver.CreateServer(cfg, log, usersService, authService)
+	tcpServer := tcpserver.CreateServer(cfg, log)
+
+	go func() {
+		if err := tcpServer.Start(ctx); err != nil {
+			log.WithError(err).Panic("TCP Server stopped unexpectedly")
+		}
+	}()
 
 	if err := httpserver.Start(ctx); err != nil {
 		log.WithError(err).Panic("Server stopped unexpectedly")
 	}
 
 	<-ctx.Done()
+
+	// T0D0
+	// if err := tcpServer.Shutdown(ctx); err != nil {
+	// 	log.WithError(err).Error("Failed to shut down TCP server gracefully")
+	// }
 
 	if err := httpserver.Shutdown(ctx); err != nil {
 		log.WithError(err).Error("Failed to shut down server gracefully")

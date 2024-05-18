@@ -14,6 +14,7 @@ var (
 	errMissingPassword  = errors.New("postgresPassword environment variable is missing")
 	errMissingDB        = errors.New("postgresDB environment variable is missing")
 	errMissingAppPort   = errors.New("appPort environment variable is missing")
+	errMissingTCPPort   = errors.New("tcpPort environment variable is missing")
 	errMissingJwtSecret = errors.New("jwtSecret environment variable is missing")
 )
 
@@ -21,6 +22,7 @@ type Config struct {
 	DatabaseURL string
 	AppPort     string
 	AppHost     string
+	TCPPort     string
 	SigningKey  []byte
 }
 
@@ -32,6 +34,7 @@ func New() (*Config, error) {
 	postgresDB := os.Getenv("POSTGRES_DB")
 	appHost := os.Getenv("APP_HOST")
 	appPort := os.Getenv("APP_PORT")
+	tcpPort := os.Getenv("TCP_PORT")
 	jwtSecret := os.Getenv("JWT_SECRET")
 	signingKey := []byte(jwtSecret)
 
@@ -50,6 +53,8 @@ func New() (*Config, error) {
 		return nil, errMissingDB
 	case appPort == "":
 		return nil, errMissingAppPort
+	case tcpPort == "":
+		return nil, errMissingTCPPort
 	case jwtSecret == "" || len(signingKey) == 0:
 		return nil, errMissingJwtSecret
 	default:
@@ -61,6 +66,7 @@ func New() (*Config, error) {
 			DatabaseURL: dsn,
 			AppPort:     appPort,
 			AppHost:     appHost,
+			TCPPort:     tcpPort,
 			SigningKey:  signingKey,
 		}, nil
 	}
