@@ -10,7 +10,6 @@ import (
 	"github.com/stsolovey/kvant_chat/internal/models"
 )
 
-// Mock UsersRepositoryInterface
 type MockUsersRepo struct {
 	mock.Mock
 }
