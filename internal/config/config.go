@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"net"
 	"os"
+
+	"github.com/joho/godotenv"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -26,7 +29,12 @@ type Config struct {
 	SigningKey  []byte
 }
 
-func New() (*Config, error) {
+func New(log *logrus.Logger) (*Config, error) {
+	err := godotenv.Load()
+	if err != nil {
+		log.WithError(err).Panic("Error loading .env file")
+	}
+
 	postgresHost := os.Getenv("POSTGRES_HOST")
 	postgresPort := os.Getenv("POSTGRES_PORT")
 	postgresUser := os.Getenv("POSTGRES_USER")
