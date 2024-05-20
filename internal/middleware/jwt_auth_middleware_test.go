@@ -25,6 +25,11 @@ func (m *MockAuthService) ValidateToken(tokenString string) (*jwt.Token, error) 
 	return token, args.Error(1)
 }
 
+func (m *MockAuthService) LoginUser(ctx context.Context, input models.UserLoginInput) (string, error) {
+	args := m.Called(input)
+	return args.String(0), args.Error(1)
+}
+
 func (m *MockAuthService) GenerateToken(username string) (string, error) {
 	return m.Called(username).Get(0).(string), m.Called(username).Error(1)
 }

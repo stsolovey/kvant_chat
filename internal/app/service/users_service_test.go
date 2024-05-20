@@ -31,6 +31,11 @@ type MockAuthService struct {
 	mock.Mock
 }
 
+func (m *MockAuthService) LoginUser(ctx context.Context, input models.UserLoginInput) (string, error) {
+	args := m.Called(input)
+	return args.String(0), args.Error(1)
+}
+
 func (m *MockAuthService) GenerateToken(username string) (string, error) {
 	args := m.Called(username)
 	return args.String(0), args.Error(1)
@@ -90,7 +95,8 @@ func TestRegisterUser(t *testing.T) {
 	mockUsersRepo.On("GetUserByUsername", ctx, "newuser").Return(expectedUser, nil).Once()
 
 	// attempt to register should fail with username exists error
-	userResponse, token, err = usersService.RegisterUser(ctx, input)
+	// userResponse, token, err = usersService.RegisterUser(ctx, input)
+	_, _, err = usersService.RegisterUser(ctx, input)
 	assert.Error(t, err, "Should return error when username already exists")
 	assert.Equal(t, models.ErrUsernameExists, err, "Error should be 'username already exists'")
 }
