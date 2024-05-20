@@ -29,8 +29,8 @@ type Config struct {
 	SigningKey  []byte
 }
 
-func New(log *logrus.Logger) (*Config, error) {
-	err := godotenv.Load()
+func New(log *logrus.Logger, path string) (*Config, error) {
+	err := godotenv.Load(path)
 	if err != nil {
 		log.WithError(err).Panic("Error loading .env file")
 	}
