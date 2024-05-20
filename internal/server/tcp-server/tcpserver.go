@@ -3,6 +3,7 @@ package tcpserver
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -44,25 +45,51 @@ func (s *Server) Start(ctx context.Context) error {
 
 	s.listener, err = net.Listen("tcp", ":"+s.cfg.TCPPort)
 	if err != nil {
-		<-ctx.Done()
-
 		return fmt.Errorf("error starting TCP server: %w", err)
 	}
 
-	defer s.listener.Close()
+	defer func() {
+		if err = s.listener.Close(); err != nil {
+			s.log.Errorf("err=s.listener.Close(): %v", err)
+		}
+	}()
 
 	s.log.Info("TCP Server listening on port", s.cfg.TCPPort)
 
-	for {
-		conn, err := s.listener.Accept()
-		if err != nil {
-			s.log.WithError(err).Error("Error accepting connection:", err)
+	connChan := make(chan net.Conn)
+	errChan := make(chan error)
 
-			continue
+	go func() {
+		for {
+			conn, err := s.listener.Accept()
+			if err != nil {
+				errChan <- err
+				return
+			}
+			connChan <- conn
 		}
+	}()
 
-		go s.handleConnection(conn)
-	}
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				s.log.Info("TCP server shutdown initiated.")
+				return
+			case err := <-errChan:
+				if !errors.Is(err, net.ErrClosed) {
+					s.log.WithError(err).Error("Error accepting connection")
+				}
+				continue
+			case conn := <-connChan:
+				go s.handleConnection(conn)
+			}
+		}
+	}()
+
+	<-ctx.Done()
+
+	return nil
 }
 
 func (s *Server) handleConnection(conn net.Conn) {
