@@ -1,10 +1,13 @@
 package handler
 
 import (
+	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/sirupsen/logrus"
 	"github.com/stsolovey/kvant_chat/internal/app/service"
+	"github.com/stsolovey/kvant_chat/internal/models"
 	"github.com/stsolovey/kvant_chat/internal/utils"
 )
 
@@ -27,38 +30,42 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username := r.FormValue("username")
-	password := r.FormValue("password")
-
-	if username == "" || password == "" {
-		utils.WriteErrorResponse(w, http.StatusBadRequest, "Username and password are required", h.logger)
+	var loginRequest models.UserLoginInput
+	if err := json.NewDecoder(r.Body).Decode(&loginRequest); err != nil {
+		utils.WriteErrorResponse(w, http.StatusBadRequest, "Invalid JSON data", h.logger)
 
 		return
 	}
 
-	user, err := h.service.GetUserByUsername(r.Context(), username)
+	token, err := h.service.LoginUser(r.Context(), loginRequest)
 	if err != nil {
-		utils.WriteErrorResponse(w, http.StatusUnauthorized, "Invalid credentials", h.logger)
-
-		return
-	}
-
-	if !h.service.VerifyPassword(user.HashPassword, password) {
-		utils.WriteErrorResponse(w, http.StatusUnauthorized, "Invalid credentials", h.logger)
-
-		return
-	}
-
-	tokenString, err := h.service.GenerateToken(username)
-	if err != nil {
-		utils.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to generate token", h.logger)
+		handleLoginServiceError(w, err, h.logger)
 
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 
-	responseData := map[string]interface{}{"token": tokenString}
-
+	responseData := map[string]interface{}{"token": token}
 	utils.WriteOkResponse(w, http.StatusOK, responseData, h.logger)
+}
+
+func handleLoginServiceError(w http.ResponseWriter, err error, log *logrus.Logger) {
+	var statusCode int
+
+	var errMsg string
+
+	switch {
+	case errors.Is(err, models.ErrCredentialsRequired):
+		statusCode = http.StatusUnauthorized
+		errMsg = err.Error()
+	case errors.Is(err, models.ErrInvalidCredentials):
+		statusCode = http.StatusUnauthorized
+		errMsg = err.Error()
+	default:
+		statusCode = http.StatusInternalServerError
+		errMsg = "Internal server error"
+	}
+
+	utils.WriteErrorResponse(w, statusCode, errMsg, log)
 }
