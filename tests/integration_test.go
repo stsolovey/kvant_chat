@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
 	"github.com/stsolovey/kvant_chat/internal/app/repository"
@@ -21,8 +20,8 @@ import (
 )
 
 const (
-	pathLogin    = "localhost:8080/api/v1/user/login"
-	pathRegister = "localhost:8080/api/v1/user/register"
+	pathLogin    = "/api/v1/user/login"
+	pathRegister = "/api/v1/user/register"
 )
 
 type IntegrationTestSuite struct {
@@ -41,12 +40,7 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	s.ctx, s.cancel = context.WithCancel(context.Background())
 
 	var err error
-	if err := godotenv.Load("../.env"); err != nil {
-		s.log.WithError(err).Error("Error loading .env file")
-		s.T().FailNow()
-	}
-
-	s.cfg, err = config.New(s.log)
+	s.cfg, err = config.New(s.log, "../.env")
 	if err != nil {
 		s.log.WithError(err).Error("Failed to load configuration")
 		s.T().FailNow()
@@ -69,16 +63,25 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	authService := service.NewAuthService(authRepo, s.cfg.SigningKey)
 	usersService := service.NewUsersService(usersRepo, authService)
 
+	// Use a buffered channel to avoid blocking the goroutine
+	errChan := make(chan error, 1)
 	go func() {
 		s.httpServer = httpserver.CreateServer(s.cfg, s.log, usersService, authService)
+		errChan <- s.httpServer.Start(s.ctx)
+	}()
 
-		if err := s.httpServer.Start(s.ctx); err != nil {
+	time.Sleep(1 * time.Second)
+	select {
+	case err := <-errChan:
+		if err != nil {
 			s.log.WithError(err).Error("Server start failed")
 			s.T().FailNow()
 		}
-	}()
+	default:
+		s.log.Info("Server started successfully")
+	}
 
-	time.Sleep(100 * time.Millisecond) // может быть нужно увеличить время
+	time.Sleep(100 * time.Millisecond)
 }
 
 func (s *IntegrationTestSuite) TearDownSuite() {
@@ -126,7 +129,7 @@ func (s *IntegrationTestSuite) truncateTables() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	tables := []string{"programs", "training_days", "exercises"}
+	tables := []string{"users"}
 	for _, table := range tables {
 		_, err := s.storage.DB().Exec(ctx, fmt.Sprintf("TRUNCATE TABLE %s RESTART IDENTITY CASCADE", table))
 		if err != nil {
