@@ -40,3 +40,22 @@ type FeedUsersRequest struct {
 	Descending   bool   `json:"descending"`
 	Text         string `json:"text"`
 }
+
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
+type Credentials struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type ResponseData struct {
+	Token string `json:"token"`
+	User  struct {
+		ID        int    `json:"id"`
+		Username  string `json:"username"`
+		CreatedAt string `json:"createdAt"`
+		UpdatedAt string `json:"updatedAt"`
+	} `json:"user"`
+}
