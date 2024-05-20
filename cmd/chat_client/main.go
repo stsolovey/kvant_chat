@@ -2,109 +2,72 @@ package main
 
 import (
 	"bufio"
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
+	"net"
 	"os"
 
+	"github.com/sirupsen/logrus"
+	"github.com/stsolovey/kvant_chat/internal/config"
 	"github.com/stsolovey/kvant_chat/internal/logger"
-	"github.com/stsolovey/kvant_chat/internal/models"
 )
 
 func main() {
-	log := logger.NewTextFormat()
+	log := logger.New()
 
-	reader := bufio.NewReader(os.Stdin)
-	serverURL := "http://localhost:8080/api/v1/user"
+	cfg, err := config.NewClientConfig(log, "./.env")
+	if err != nil {
+		log.WithError(err).Panic("Failed to initialize config")
+	}
 
-	log.Info("Choose an option:")
-	log.Info("1: Register")
-	log.Info("2: Login")
+	log.Infoln("Attempting to connect to server...")
+	conn, err := net.Dial("tcp", cfg.ServerAddress)
+	if err != nil {
+		log.WithError(err).Panic("Error connecting to server")
+	}
 
-	fmt.Print("Option: ")
-	option, _ := reader.ReadString('\n')
+	defer func() {
+		if err = conn.Close(); err != nil {
+			log.WithError(err).Panic("Error closing connecting to server")
+		}
+	}()
 
-	log.Info("Enter username:")
-	fmt.Print("Username: ")
-	username, _ := reader.ReadString('\n')
-	username = username[:len(username)-1]
+	log.Infoln("Connected to server successfully.")
 
-	log.Info("Enter password:")
-	fmt.Print("Password: ")
-	password, _ := reader.ReadString('\n')
-	password = password[:len(password)-1]
+	handleConnection(log, conn)
+}
 
-	switch option[0] {
-	case '1':
-		log.Info("Registering...")
-		creds := models.UserRegisterInput{UserName: username, HashPassword: password}
-		url := serverURL + "/register"
-		response, err := sendRequest(url, creds)
+func handleConnection(log *logrus.Logger, conn net.Conn) {
+	log.Infoln("Enter authentication token:")
+	scanner := bufio.NewScanner(os.Stdin)
+	if scanner.Scan() {
+		token := scanner.Text()
+		_, err := conn.Write([]byte(token + "\n"))
 		if err != nil {
-			log.Error("Registration error: ", err)
+			fmt.Printf("Failed to send token: %v\n", err)
 			return
 		}
-		log.Info("Registration response: ", response)
-	case '2':
-		log.Info("Logging in...")
-		creds := models.UserLoginInput{UserName: username, Password: password}
-		url := serverURL + "/login"
-		response, err := sendRequest(url, creds)
-		if err != nil {
-			log.Error("Login error: ", err)
-			return
+	}
+	go receiveMessages(log, conn)
+
+	for {
+		if scanner.Scan() {
+			message := scanner.Text()
+			_, err := conn.Write([]byte(message + "\n"))
+			if err != nil {
+				fmt.Printf("Failed to send message: %v\n", err)
+				continue
+			}
 		}
-		log.Info("Login response: ", response)
-	default:
-		log.Info("Invalid option")
 	}
 }
 
-func sendRequest(url string, data interface{}) (string, error) {
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		return "", err
+func receiveMessages(log *logrus.Logger, conn net.Conn) {
+	scanner := bufio.NewScanner(conn)
+	for scanner.Scan() {
+		message := scanner.Text()
+		log.Infoln("Received:", message)
 	}
-
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return "", err
+	if err := scanner.Err(); err != nil {
+		fmt.Printf("Error receiving messages: %v\n", err)
 	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
-		var errResp models.ErrorResponse
-		if err := json.Unmarshal(body, &errResp); err != nil {
-			return "", err // Error unmarshalling the error response
-		}
-		return "", fmt.Errorf("server error: %s", errResp.Error)
-	}
-
-	var response struct {
-		Data struct {
-			Token string               `json:"token"`
-			User  *models.UserResponse `json:"user,omitempty"`
-		} `json:"data"`
-		Token string `json:"token"` // For login response
-	}
-
-	if err := json.Unmarshal(body, &response); err != nil {
-		return "", err // Error unmarshalling the data response
-	}
-
-	// Displaying user data if available (for register response)
-	userDisplay := ""
-	if response.Data.User != nil {
-		userDisplay = fmt.Sprintf(", User: %s, CreatedAt: %s, UpdatedAt: %s",
-			response.Data.User.UserName, response.Data.User.CreatedAt, response.Data.User.UpdatedAt)
-	}
-
-	return fmt.Sprintf("Token: %s%s", response.Data.Token, userDisplay), nil
 }
