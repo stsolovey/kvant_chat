@@ -52,7 +52,7 @@ func main() {
 	usersService := service.NewUsersService(usersRepo, authService)
 
 	httpServer := httpserver.CreateServer(cfg, log, usersService, authService)
-	tcpServer := tcpserver.CreateServer(cfg, log)
+	tcpServer := tcpserver.CreateServer(cfg, log, authService)
 
 	eg, ctx := errgroup.WithContext(ctx)
 
