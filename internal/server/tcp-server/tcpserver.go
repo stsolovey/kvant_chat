@@ -97,7 +97,11 @@ func (s *Server) Start(ctx context.Context) error {
 }
 
 func (s *Server) handleConnection(conn net.Conn) {
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			s.log.WithError(err).Panic("Error closing connecting")
+		}
+	}()
 
 	clientReader := bufio.NewReader(conn)
 
@@ -177,6 +181,7 @@ func (s *Server) handleMessage(user *models.User, message string, conn net.Conn)
 	room, exists := s.rooms["general"]
 	if !exists {
 		s.log.Error("General room does not exist")
+
 		return
 	}
 
