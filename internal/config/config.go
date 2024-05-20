@@ -19,14 +19,17 @@ var (
 	errMissingAppPort   = errors.New("appPort environment variable is missing")
 	errMissingTCPPort   = errors.New("tcpPort environment variable is missing")
 	errMissingJwtSecret = errors.New("jwtSecret environment variable is missing")
+
+	errMissingServerAddress = errors.New("serverAddress environment variable missing")
 )
 
 type Config struct {
-	DatabaseURL string
-	AppPort     string
-	AppHost     string
-	TCPPort     string
-	SigningKey  []byte
+	DatabaseURL   string
+	AppPort       string
+	AppHost       string
+	TCPPort       string
+	SigningKey    []byte
+	ServerAddress string
 }
 
 func New(log *logrus.Logger, path string) (*Config, error) {
@@ -78,4 +81,20 @@ func New(log *logrus.Logger, path string) (*Config, error) {
 			SigningKey:  signingKey,
 		}, nil
 	}
+}
+
+func NewClientConfig(log *logrus.Logger, path string) (*Config, error) {
+	err := godotenv.Load(path)
+	if err != nil {
+		log.WithError(err).Panic("Error loading .env file")
+	}
+	serverAddress := os.Getenv("SERVER_ADDRESS")
+
+	if serverAddress == "" {
+		return nil, errMissingServerAddress
+	}
+
+	return &Config{
+		ServerAddress: serverAddress,
+	}, nil
 }
