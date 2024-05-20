@@ -1,6 +1,5 @@
 package tests
 
-/*
 import (
 	"encoding/json"
 	"fmt"
@@ -83,4 +82,3 @@ func (s *IntegrationTestSuite) TestRegister() {
 		}
 	})
 }
-*/
