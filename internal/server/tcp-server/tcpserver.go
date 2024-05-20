@@ -64,6 +64,7 @@ func (s *Server) Start(ctx context.Context) error {
 			conn, err := s.listener.Accept()
 			if err != nil {
 				errChan <- err
+
 				return
 			}
 			connChan <- conn
@@ -75,11 +76,13 @@ func (s *Server) Start(ctx context.Context) error {
 			select {
 			case <-ctx.Done():
 				s.log.Info("TCP server shutdown initiated.")
+
 				return
 			case err := <-errChan:
 				if !errors.Is(err, net.ErrClosed) {
 					s.log.WithError(err).Error("Error accepting connection")
 				}
+
 				continue
 			case conn := <-connChan:
 				go s.handleConnection(conn)
