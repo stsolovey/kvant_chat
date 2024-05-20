@@ -19,10 +19,10 @@ func configureRoutes(
 	usersHandler := handler.NewUsersHandler(usersServ, log)
 
 	const (
-		loginRequestsPerSecond = 1
-		loginBurstSize         = 5
-		regisRequestsPerSecond = 1
-		regisBurstSize         = 3
+		loginRequestsPerSecond = 5
+		loginBurstSize         = 15
+		regisRequestsPerSecond = 5
+		regisBurstSize         = 15
 	)
 
 	loginLimiter := rate.NewLimiter(loginRequestsPerSecond, loginBurstSize)
@@ -35,10 +35,3 @@ func configureRoutes(
 		})
 	})
 }
-
-// r.Get("/", usersHandler.GetUsers).
-// r.Route("/{id}", func(r chi.Router) {.
-// 	r.Get("/", usersHandler.GetUser).
-// 	r.Patch("/", usersHandler.UpdateUser).
-//	r.Delete("/", usersHandler.DeleteUser).
-// }).

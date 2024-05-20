@@ -20,7 +20,12 @@ type UserResponse struct {
 
 type UserRegisterInput struct {
 	UserName     string `json:"username"`
-	HashPassword string `json:"hashPassword"`
+	HashPassword string `json:"password"`
+}
+
+type UserLoginInput struct {
+	UserName string `json:"username"`
+	Password string `json:"password"`
 }
 
 type UserUpdateInput struct {

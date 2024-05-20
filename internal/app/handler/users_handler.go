@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -29,23 +30,25 @@ func (h *UsersHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	input := models.UserRegisterInput{
-		UserName:     r.FormValue("username"),
-		HashPassword: r.FormValue("password"),
+	var input models.UserRegisterInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		utils.WriteErrorResponse(w, http.StatusBadRequest, "Invalid JSON data", h.logger)
+
+		return
 	}
 
 	userResponse, token, err := h.service.RegisterUser(r.Context(), input)
 	if err != nil {
-		handleServiceError(w, err, h.logger)
+		handleRegisterServiceError(w, err, h.logger)
 
 		return
 	}
 
 	responseData := map[string]interface{}{"user": userResponse, "token": token}
-	utils.WriteOkResponse(w, http.StatusOK, responseData, h.logger)
+	utils.WriteOkResponse(w, http.StatusCreated, responseData, h.logger)
 }
 
-func handleServiceError(w http.ResponseWriter, err error, log *logrus.Logger) {
+func handleRegisterServiceError(w http.ResponseWriter, err error, log *logrus.Logger) {
 	var statusCode int
 
 	var errMsg string

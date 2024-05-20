@@ -6,7 +6,6 @@ import (
 	"embed"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib" // Importing `pgx/v5/stdlib` is necessary for `sql.Open("pgx", s.dsn)`.
@@ -58,7 +57,12 @@ func (s *Storage) Migrate(logger *logrus.Logger) error {
 	if err != nil {
 		return fmt.Errorf("storage.go Migrate, sql.Open(...) failed: %w", err)
 	}
-	defer conn.Close()
+
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logrus.Warnf("storage.go Migrate: conn.Close(): %v", err)
+		}
+	}()
 
 	migrations := &migrate.EmbedFileSystemMigrationSource{
 		FileSystem: migrationFiles,
@@ -71,47 +75,6 @@ func (s *Storage) Migrate(logger *logrus.Logger) error {
 	}
 
 	logger.Infof("Applied %d migrations successfully", n)
-
-	return nil
-}
-
-func (s *Storage) WaitForDatabase(ctx context.Context, logger *logrus.Logger) error {
-	const (
-		tickerInterval  = 2 * time.Second
-		timeoutDuration = 60 * time.Second
-	)
-
-	ticker := time.NewTicker(tickerInterval)
-	timeout := time.After(timeoutDuration)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("storage.go WaitForDatabase context done: %w", ctx.Err())
-		case <-timeout:
-			return fmt.Errorf("storage.go WaitForDatabase timeout: %w", ErrTimeoutWaitingForDB)
-		case <-ticker.C:
-			if err := s.checkDB(); err == nil {
-				logger.Info("Database is ready")
-
-				return nil
-			}
-
-			logger.Info("Waiting for database to be ready")
-		}
-	}
-}
-
-func (s *Storage) checkDB() error {
-	conn, err := sql.Open("pgx", s.dsn)
-	if err != nil {
-		return fmt.Errorf("storage.go checkDB, sql.Open failed: %w", ErrDBConnectionFailed)
-	}
-	defer conn.Close()
-
-	if err = conn.Ping(); err != nil {
-		return fmt.Errorf("storage.go checkDB, ping failed: %w", err)
-	}
 
 	return nil
 }

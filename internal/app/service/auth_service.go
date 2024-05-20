@@ -12,6 +12,7 @@ import (
 )
 
 type AuthServiceInterface interface {
+	LoginUser(ctx context.Context, input models.UserLoginInput) (string, error)
 	GenerateToken(username string) (string, error)
 	ValidateToken(tokenString string) (*jwt.Token, error)
 	VerifyPassword(storedHash, providedPassword string) bool
@@ -28,6 +29,28 @@ func NewAuthService(repo repository.AuthRepositoryInterface, signingKey []byte) 
 		repo:       repo,
 		signingKey: signingKey,
 	}
+}
+
+func (s *AuthService) LoginUser(ctx context.Context, input models.UserLoginInput) (string, error) {
+	if input.UserName == "" || input.Password == "" {
+		return "", models.ErrCredentialsRequired
+	}
+
+	user, err := s.repo.GetUserByUsername(ctx, input.UserName)
+	if err != nil {
+		return "", fmt.Errorf("invalid credentials: %w, %w", err, models.ErrInvalidCredentials)
+	}
+
+	if !s.VerifyPassword(user.HashPassword, input.Password) {
+		return "", models.ErrInvalidCredentials
+	}
+
+	token, err := s.GenerateToken(input.UserName)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate token: %w", err)
+	}
+
+	return token, nil
 }
 
 func (s *AuthService) GenerateToken(username string) (string, error) {

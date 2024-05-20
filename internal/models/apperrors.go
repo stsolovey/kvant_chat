@@ -30,4 +30,7 @@ var (
 	ErrTokenGenerationError = errors.New("token generation error")
 
 	ErrUnknownError = errors.New("unknown error")
+
+	ErrCredentialsRequired = errors.New("username and password required")
+	ErrInvalidCredentials  = errors.New("invalid credentials")
 )

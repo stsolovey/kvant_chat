@@ -20,7 +20,6 @@ var (
 
 func main() {
 	log := logrus.New()
-	log.SetFormatter(&logrus.JSONFormatter{})
 
 	os.Stdout.WriteString("Please enter your username: ")
 
