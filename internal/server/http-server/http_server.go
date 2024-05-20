@@ -59,34 +59,34 @@ func CreateServer(
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	s.logger.Info("Starting server...")
+	s.logger.Info("Starting HTTP server...")
 
 	go func() {
 		<-ctx.Done()
-		s.logger.Info("Server is shutting down...")
+		s.logger.Info("HTTP server shutdown initiated.")
 
 		ctxShutdown, cancel := context.WithTimeout(context.Background(), shutdownTimeoutDuration)
 		defer cancel()
 
-		if err := s.server.Shutdown(ctxShutdown); err != nil { //nolint:contextcheck
-			s.logger.WithError(err).Error("Server shutdown failed")
+		if err := s.Shutdown(ctxShutdown); err != nil { //nolint:contextcheck
+			s.logger.WithError(err).Error("http server shutdown failed")
 		}
 	}()
 
-	s.logger.Infof("Server is running on %s", s.server.Addr)
+	s.logger.Infof("HTTP server is running on %s", s.server.Addr)
 
 	if err := s.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return fmt.Errorf("listen and serve: %w", err)
+		return fmt.Errorf("http server listen and serve: %w", err)
 	}
 
 	return nil
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
-	s.logger.Info("Shutting down server...")
+	s.logger.Info("Shutting down HTTP server...")
 
 	if err := s.server.Shutdown(ctx); err != nil {
-		return fmt.Errorf("server shutdown failed: %w", err)
+		return fmt.Errorf("http server shutdown failed: %w", err)
 	}
 
 	return nil
