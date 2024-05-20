@@ -13,27 +13,33 @@ import (
 	httpserver "github.com/stsolovey/kvant_chat/internal/server/http-server"
 	tcpserver "github.com/stsolovey/kvant_chat/internal/server/tcp-server"
 	"github.com/stsolovey/kvant_chat/internal/storage"
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
 	log := logger.New()
 
-	cfg, err := config.New(log)
+	cfg, err := config.New(log, "./.env")
 	if err != nil {
 		log.WithError(err).Panic("Failed to initialize config")
 	}
 
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	ctx, cancel := context.WithCancel(context.Background())
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		sig := <-signalChan
+		log.Infof("Received signal: %s", sig)
+		cancel()
+	}()
+
 	defer cancel()
 
 	storageSystem, err := storage.NewStorage(ctx, cfg.DatabaseURL)
 	if err != nil {
 		log.WithError(err).Panic("Failed to initialize storage")
 	}
-
-	/*if err := storageSystem.WaitForDatabase(ctx, log); err != nil {
-		log.WithError(err).Panic("Failed to wait for database to be ready")
-	}*/
 
 	if err := storageSystem.Migrate(log); err != nil {
 		log.WithError(err).Panic("Failed to execute migrations")
@@ -48,15 +54,25 @@ func main() {
 	httpServer := httpserver.CreateServer(cfg, log, usersService, authService)
 	tcpServer := tcpserver.CreateServer(cfg, log)
 
-	go func() {
+	eg, ctx := errgroup.WithContext(ctx)
+
+	eg.Go(func() error {
 		if err := tcpServer.Start(ctx); err != nil {
 			log.WithError(err).Panic("TCP Server stopped unexpectedly")
 		}
-	}()
 
-	if err := httpServer.Start(ctx); err != nil {
+		return nil
+	})
+
+	eg.Go(func() error {
+		if err := httpServer.Start(ctx); err != nil {
+			log.WithError(err).Panic("Server stopped unexpectedly")
+		}
+
+		return nil
+	})
+
+	if err = eg.Wait(); err != nil {
 		log.WithError(err).Panic("Server stopped unexpectedly")
 	}
-
-	<-ctx.Done()
 }
