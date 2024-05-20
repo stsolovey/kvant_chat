@@ -19,10 +19,10 @@ func configureRoutes(
 	usersHandler := handler.NewUsersHandler(usersServ, log)
 
 	const (
-		loginRequestsPerSecond = 1
-		loginBurstSize         = 5
-		regisRequestsPerSecond = 1
-		regisBurstSize         = 3
+		loginRequestsPerSecond = 5
+		loginBurstSize         = 15
+		regisRequestsPerSecond = 5
+		regisBurstSize         = 15
 	)
 
 	loginLimiter := rate.NewLimiter(loginRequestsPerSecond, loginBurstSize)
