@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"net"
+	"time"
+)
 
 type User struct {
 	ID           int       `db:"user_id" json:"id"`
@@ -9,6 +12,7 @@ type User struct {
 	CreatedAt    time.Time `db:"created_at" json:"createdAt,omitempty"`
 	UpdatedAt    time.Time `db:"updated_at" json:"updatedAt,omitempty"`
 	Deleted      bool      `db:"deleted" json:"deleted,omitempty"`
+	Conn         net.Conn  `json:"-"`
 }
 
 type UserResponse struct {
