@@ -1,7 +1,11 @@
 # Kvant Chat App
 
 ## Overview
-Kvant Chat is a real-time chat application that provides both TCP and HTTP interfaces for communication. Users register or log in via the HTTP interface to obtain a JWT token. Once authenticated, they use this token to establish a connection over TCP. After the initial authentication, users can participate in the chat without further token checking or renewal within the session. The application's servers share common services and models to ensure consistent handling of user data and authentication across different communication protocols.
+Kvant Chat is a real-time chat application that provides both TCP and HTTP interfaces for communication. Users register or log in via the HTTP interface to obtain a JWT token. 
+
+Once authenticated, they use this token to establish a connection over TCP. After the initial authentication, users can participate in the chat without further token checking or renewal within the session. 
+
+The application supports a general chat room where messages can be broadcasted to all connected users. Additionally, users can send direct messages to specific users by prefixing their message with `@username`. 
 
 ## Configuration
 The app requires certain environment variables to be set for its operation, which are specified in the `.env` file. This file includes configurations for database connections, JWT secret key for authentication, and server port settings. 
