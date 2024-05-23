@@ -36,4 +36,4 @@ The `Makefile` includes several commands to facilitate easy setup, development, 
 Maybe you'll need install it using `make tools`
 
 ## Contact Information
-For further inquiries or direct communication, feel free to reach out via Telegram: `@duckever`.
+For further inquiries or direct communication, feel free to reach out via Telegram: [@duckever](https://t.me/duckever).
