@@ -20,16 +20,24 @@ var (
 	errMissingTCPPort   = errors.New("tcpPort environment variable is missing")
 	errMissingJwtSecret = errors.New("jwtSecret environment variable is missing")
 
-	errMissingServerAddress = errors.New("serverAddress environment variable missing")
+	errServerHost = errors.New("serverHost environment variable is missing")
+	errHTTPPort   = errors.New("httpPort environment variable is missing")
+	errTCPPort    = errors.New("tcpPort environment variable is missing")
 )
 
 type Config struct {
-	DatabaseURL   string
-	AppPort       string
-	AppHost       string
-	TCPPort       string
-	SigningKey    []byte
-	ServerAddress string
+	DatabaseURL    string
+	AppPort        string
+	AppHost        string
+	HTTPPort       string
+	TCPPort        string
+	SigningKey     []byte
+	ServerHost     string
+	TCPServerAddr  string
+	HTTPServerAddr string
+	HTTPServerURL  string
+	LoginURL       string
+	RegisterURL    string
 }
 
 func New(log *logrus.Logger, path string) (*Config, error) {
@@ -88,13 +96,40 @@ func NewClientConfig(log *logrus.Logger, path string) (*Config, error) {
 	if err != nil {
 		log.WithError(err).Panic("Error loading .env file")
 	}
-	serverAddress := os.Getenv("SERVER_ADDRESS")
 
-	if serverAddress == "" {
-		return nil, errMissingServerAddress
+	serverHost := os.Getenv("SERVER_HOST")
+	httpPort := os.Getenv("HTTP_PORT")
+	tcpPort := os.Getenv("TCP_PORT")
+
+	switch {
+	case serverHost == "":
+		return nil, errServerHost
+	case httpPort == "":
+		return nil, errHTTPPort
+	case tcpPort == "":
+		return nil, errTCPPort
 	}
 
+	const (
+		userPath         = "/api/v1/user"
+		loginEndpoint    = "/login"
+		registerEndpoint = "/register"
+	)
+
+	tcpServerAddr := serverHost + ":" + tcpPort
+	httpServerAddr := serverHost + ":" + httpPort
+	httpServerURL := "http://" + httpServerAddr + userPath
+	loginURL := httpServerURL + loginEndpoint
+	registerURL := httpServerURL + registerEndpoint
+
 	return &Config{
-		ServerAddress: serverAddress,
+		ServerHost:     serverHost,
+		HTTPPort:       httpPort,
+		TCPPort:        tcpPort,
+		TCPServerAddr:  tcpServerAddr,
+		HTTPServerAddr: httpServerAddr,
+		HTTPServerURL:  httpServerURL,
+		LoginURL:       loginURL,
+		RegisterURL:    registerURL,
 	}, nil
 }
