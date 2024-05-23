@@ -6,6 +6,10 @@ SERVER_EXECUTABLE=chat_server
 # Запуск окружения и сервера
 ups: up-deps run_server
 
+# Запуск клиента
+upc:
+	go run cmd/chat_client/main.go
+
 # Запуск сервера
 run_server:
 	go run cmd/chat_server/main.go
@@ -91,6 +95,7 @@ tools:
 help:
 	@echo "Available commands:"
 	@echo "  ups               - Start dependencies and the server"
+	@echo "  upc               - Start client"
 	@echo "  run_server        - Start the server using 'go run'"
 	@echo "  up-deps           - Start environment using Docker Compose"
 	@echo "  down-deps         - Stop environment using Docker Compose"

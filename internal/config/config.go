@@ -19,14 +19,25 @@ var (
 	errMissingAppPort   = errors.New("appPort environment variable is missing")
 	errMissingTCPPort   = errors.New("tcpPort environment variable is missing")
 	errMissingJwtSecret = errors.New("jwtSecret environment variable is missing")
+
+	errServerHost = errors.New("serverHost environment variable is missing")
+	errHTTPPort   = errors.New("httpPort environment variable is missing")
+	errTCPPort    = errors.New("tcpPort environment variable is missing")
 )
 
 type Config struct {
-	DatabaseURL string
-	AppPort     string
-	AppHost     string
-	TCPPort     string
-	SigningKey  []byte
+	DatabaseURL    string
+	AppPort        string
+	AppHost        string
+	HTTPPort       string
+	TCPPort        string
+	SigningKey     []byte
+	ServerHost     string
+	TCPServerAddr  string
+	HTTPServerAddr string
+	HTTPServerURL  string
+	LoginURL       string
+	RegisterURL    string
 }
 
 func New(log *logrus.Logger, path string) (*Config, error) {
@@ -78,4 +89,47 @@ func New(log *logrus.Logger, path string) (*Config, error) {
 			SigningKey:  signingKey,
 		}, nil
 	}
+}
+
+func NewClientConfig(log *logrus.Logger, path string) (*Config, error) {
+	err := godotenv.Load(path)
+	if err != nil {
+		log.WithError(err).Panic("Error loading .env file")
+	}
+
+	serverHost := os.Getenv("SERVER_HOST")
+	httpPort := os.Getenv("HTTP_PORT")
+	tcpPort := os.Getenv("TCP_PORT")
+
+	switch {
+	case serverHost == "":
+		return nil, errServerHost
+	case httpPort == "":
+		return nil, errHTTPPort
+	case tcpPort == "":
+		return nil, errTCPPort
+	}
+
+	const (
+		userPath         = "/api/v1/user"
+		loginEndpoint    = "/login"
+		registerEndpoint = "/register"
+	)
+
+	tcpServerAddr := serverHost + ":" + tcpPort
+	httpServerAddr := serverHost + ":" + httpPort
+	httpServerURL := "http://" + httpServerAddr + userPath
+	loginURL := httpServerURL + loginEndpoint
+	registerURL := httpServerURL + registerEndpoint
+
+	return &Config{
+		ServerHost:     serverHost,
+		HTTPPort:       httpPort,
+		TCPPort:        tcpPort,
+		TCPServerAddr:  tcpServerAddr,
+		HTTPServerAddr: httpServerAddr,
+		HTTPServerURL:  httpServerURL,
+		LoginURL:       loginURL,
+		RegisterURL:    registerURL,
+	}, nil
 }

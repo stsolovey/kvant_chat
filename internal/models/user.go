@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"net"
+	"time"
+)
 
 type User struct {
 	ID           int       `db:"user_id" json:"id"`
@@ -9,6 +12,7 @@ type User struct {
 	CreatedAt    time.Time `db:"created_at" json:"createdAt,omitempty"`
 	UpdatedAt    time.Time `db:"updated_at" json:"updatedAt,omitempty"`
 	Deleted      bool      `db:"deleted" json:"deleted,omitempty"`
+	Conn         net.Conn  `json:"-"`
 }
 
 type UserResponse struct {
@@ -39,4 +43,23 @@ type FeedUsersRequest struct {
 	Sorting      string `json:"sorting"`
 	Descending   bool   `json:"descending"`
 	Text         string `json:"text"`
+}
+
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
+type Credentials struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type ResponseData struct {
+	Token string `json:"token"`
+	User  struct {
+		ID        int    `json:"id"`
+		Username  string `json:"username"`
+		CreatedAt string `json:"createdAt"`
+		UpdatedAt string `json:"updatedAt"`
+	} `json:"user"`
 }

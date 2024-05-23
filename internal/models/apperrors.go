@@ -33,4 +33,11 @@ var (
 
 	ErrCredentialsRequired = errors.New("username and password required")
 	ErrInvalidCredentials  = errors.New("invalid credentials")
+
+	ErrParseJWTClaimsAsMapClaims = errors.New("failed to parse JWT claims as MapClaims")
+
+	ErrUsernameClaimIsNotString = errors.New("username claim is not a string")
+	ErrWrongStatusCode          = errors.New("wrong status code")
+	ErrRoomNotExists            = errors.New("room not exists")
+	ErrInvalidURL               = errors.New("invalid url")
 )
