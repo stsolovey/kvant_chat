@@ -50,7 +50,13 @@ func main() {
 	authenticateWithTCPServer(token, conn, log)
 
 	wg.Wait() // wait here until the initial message is received
-	sendMessages(conn, bufio.NewReader(os.Stdin), log, username)
+
+	log.Println("Enter messages to send to the chat server:")
+	log.Println("Type '" + color.GreenString("/logout") + "' to disconnect and log out.")
+	log.Println("Type '" + color.CyanString("@username ") + color.BlueString("your_message") +
+		"' to send a direct message to 'username'.")
+
+	sendMessages(ctx, cancel, conn, bufio.NewReader(os.Stdin), log, username)
 }
 
 func authenticateUser(
@@ -63,7 +69,6 @@ func authenticateUser(
 		fmt.Println("Choose an option:") //nolint:forbidigo
 		fmt.Println("1: Register")       //nolint:forbidigo
 		fmt.Println("2: Login")          //nolint:forbidigo
-		fmt.Println("3: Exit")           //nolint:forbidigo
 
 		fmt.Print("Option: ") //nolint:forbidigo
 
@@ -91,8 +96,6 @@ func authenticateUser(
 			url = cfg.RegisterURL
 		case "2":
 			url = cfg.LoginURL
-		case "3":
-			return "", ""
 		default:
 			log.Print("Invalid option. Please choose 1 for Register, 2 for Login, or 3 to Exit.")
 
@@ -239,64 +242,72 @@ func receiveMessages(conn net.Conn, log *logrus.Logger, wg *sync.WaitGroup) {
 	}
 }
 
-func sendMessages(conn net.Conn, reader *bufio.Reader, log *logrus.Logger, username string) {
-	log.Println("Enter messages to send to the chat server:")
-	log.Println("Type '" + color.GreenString("/logout") + "' to disconnect and log out.")
-	log.Println("Type '" + color.CyanString("@username ") + color.BlueString("your_message") +
-		"' to send a direct message to 'username'.")
-
+func sendMessages(ctx context.Context, cancel context.CancelFunc, //nolint:funlen
+	conn net.Conn, reader *bufio.Reader, log *logrus.Logger, username string,
+) {
 	for {
-		input, err := reader.ReadString('\n')
-		if err != nil {
-			log.WithError(err).Error("Failed to read input")
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			log.Print("Enter command or message:\n")
 
-			continue
-		}
+			input, err := reader.ReadString('\n')
+			if err != nil {
+				log.WithError(err).Error("Failed to read input")
 
-		input = strings.TrimSpace(input)
-
-		if input == "" {
-			continue
-		}
-
-		currentTime := time.Now()
-		formattedTime := currentTime.Format("2006-01-02 15:04:05")
-		recipient := "everyone"
-
-		const receiverSeparator = 2
-
-		if strings.HasPrefix(input, "@") {
-			parts := strings.SplitN(input, " ", receiverSeparator)
-			if len(parts) > 1 {
-				recipient = parts[0][1:] // removing '@' from username
-				input = parts[1]
+				continue
 			}
-		}
 
-		messagePrefix := color.GreenString("MESSAGE")
-		ouptutMessage := fmt.Sprintf("%s[%s] You to %s: %s\n",
-			messagePrefix, formattedTime, recipient, input)
-		fmt.Print(ouptutMessage) //nolint:forbidigo
+			input = strings.TrimSpace(input)
 
-		msg := models.Message{
-			Sender:    username,
-			Receiver:  recipient,
-			Content:   input,
-			CreatedAt: currentTime,
-		}
+			if input == "/logout" {
+				cancel()
 
-		jsonData, err := json.Marshal(msg)
-		if err != nil {
-			log.WithError(err).Error("Failed to serialize message")
+				return
+			}
 
-			continue
-		}
+			if input == "" {
+				continue
+			}
 
-		_, err = conn.Write(append(jsonData, '\n'))
-		if err != nil {
-			log.WithError(err).Error("Failed to send message to server")
+			currentTime := time.Now()
+			formattedTime := currentTime.Format("2006-01-02 15:04:05")
+			recipient := "everyone"
 
-			continue
+			const receiverSeparator = 2
+
+			if strings.HasPrefix(input, "@") {
+				parts := strings.SplitN(input, " ", receiverSeparator)
+				if len(parts) > 1 {
+					recipient = parts[0][1:] // removing '@' from username
+					input = parts[1]
+				}
+			}
+
+			messagePrefix := color.GreenString("MESSAGE")
+			ouptutMessage := fmt.Sprintf("%s[%s] You to %s: %s\n",
+				messagePrefix, formattedTime, recipient, input)
+			fmt.Print(ouptutMessage) //nolint:forbidigo
+
+			msg := models.Message{
+				Sender: username, Receiver: recipient,
+				Content: input, CreatedAt: currentTime,
+			}
+
+			jsonData, err := json.Marshal(msg)
+			if err != nil {
+				log.WithError(err).Error("Failed to serialize message")
+
+				continue
+			}
+
+			_, err = conn.Write(append(jsonData, '\n'))
+			if err != nil {
+				log.WithError(err).Error("Failed to send message to server")
+
+				continue
+			}
 		}
 	}
 }
