@@ -7,6 +7,8 @@ Once authenticated, they use this token to establish a connection over TCP. Afte
 
 The application supports a general chat room where messages can be broadcasted to all connected users. Additionally, users can send direct messages to specific users by prefixing their message with `@username`. 
 
+![client cmd](img.png)
+
 ## Configuration
 The app requires certain environment variables to be set for its operation, which are specified in the `.env` file. This file includes configurations for database connections, JWT secret key for authentication, and server port settings. 
 
